@@ -56,14 +56,14 @@ OBSBasicStatusBar::OBSBasicStatusBar(QWidget *parent)
 	// Connect signals for vertical streaming from BasicOutputHandler
 	OBSBasic *main = qobject_cast<OBSBasic *>(parent);
 	if (main && main->outputHandler) {
-		connect(main->outputHandler.get(), &BasicOutputHandler::startVerticalStreaming,
-		        this, &OBSBasicStatusBar::VerticalStreamStarted);
-		connect(main->outputHandler.get(), &BasicOutputHandler::stopVerticalStreaming,
-		        this, &OBSBasicStatusBar::VerticalStreamStopped);
-		connect(main->outputHandler.get(), &BasicOutputHandler::verticalStreamDelayStarting,
-		        this, &OBSBasicStatusBar::VerticalStreamDelayStarting);
-		connect(main->outputHandler.get(), &BasicOutputHandler::verticalStreamStopping,
-		        this, &OBSBasicStatusBar::VerticalStreamStopping);
+		connect(main->outputHandler.get(), SIGNAL(startVerticalStreaming(obs_output_t*)),
+		        this, SLOT(VerticalStreamStarted(obs_output_t*)));
+		connect(main->outputHandler.get(), SIGNAL(stopVerticalStreaming(int, QString)),
+		        this, SLOT(VerticalStreamStopped(int, QString)));
+		connect(main->outputHandler.get(), SIGNAL(verticalStreamDelayStarting(int)),
+		        this, SLOT(VerticalStreamDelayStarting(int)));
+		connect(main->outputHandler.get(), SIGNAL(verticalStreamStopping()),
+		        this, SLOT(VerticalStreamStopping()));
 		// TODO: Connect vertical recording signals when implemented
 	}
 

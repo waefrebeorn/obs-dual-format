@@ -875,12 +875,14 @@ void OBSApp::SetCurrentVerticalScene(obs_source_t *scene)
 
 	blog(LOG_INFO, "Current vertical scene set.");
 
+
 	// If vertical stream output is active, update its media sources
 	if (vertical_stream_output && obs_output_active(vertical_stream_output)) {
 		obs_output_set_media(vertical_stream_output, current_vertical_scene, obs_get_audio());
 		blog(LOG_INFO, "Updated active vertical stream output media to scene: %s and main audio.",
 		     current_vertical_scene ? obs_source_get_name(current_vertical_scene) : "(none)");
 	}
+
 
 	emit verticalSceneChanged(current_vertical_scene);
 }
