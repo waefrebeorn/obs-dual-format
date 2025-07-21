@@ -887,6 +887,7 @@ void OBSApp::SetCurrentVerticalScene(obs_source_t *scene)
 			     : "(none)");
 	}
 
+
 	emit verticalSceneChanged(current_vertical_scene);
 }
 
