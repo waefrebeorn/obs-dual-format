@@ -45,6 +45,8 @@ struct AdvancedOutput : BasicOutputHandler {
 	virtual bool ReplayBufferActive() const override;
 
 	// Vertical Output Control
+	OBSOutputAutoRelease verticalStreamOutput;
+	bool verticalStreamingActive = false;
 	virtual bool StartVerticalStreaming(obs_service_t *service) override;
 	virtual void StopVerticalStreaming(bool force = false) override;
 	virtual bool VerticalStreamingActive() const override;

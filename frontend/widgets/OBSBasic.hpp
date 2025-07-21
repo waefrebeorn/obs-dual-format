@@ -1439,6 +1439,9 @@ private:
 
 	obs_hotkey_pair_id togglePreviewProgramHotkeys = 0;
 
+	OBSSource current_transition;
+	OBSSource override_transition;
+
 	int programX = 0, programY = 0;
 	int programCX = 0, programCY = 0;
 	float programScale = 0.0f;

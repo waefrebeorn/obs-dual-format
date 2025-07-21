@@ -25,6 +25,8 @@ struct BasicOutputHandler {
 	bool delayActive = false;
 	bool replayBufferActive = false;
 	bool virtualCamActive = false;
+	bool verticalStreamingActive = false;
+	bool verticalDelayActive = false;
 	OBSBasic *main;
 
 	std::unique_ptr<MultitrackVideoOutput> multitrackVideo;
