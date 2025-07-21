@@ -78,8 +78,8 @@ void OBSBasic::InitPrimitives()
 
 void OBSBasic::UpdatePreviewScalingMenu()
 {
-	bool fixedScaling = ui->preview->IsFixedScaling();
-	float scalingAmount = ui->preview->GetScalingAmount();
+	bool fixedScaling = ui->mainPreview_h->IsFixedScaling();
+	float scalingAmount = ui->mainPreview_h->GetScalingAmount();
 	if (!fixedScaling) {
 		ui->actionScaleWindow->setChecked(true);
 		ui->actionScaleCanvas->setChecked(false);
@@ -151,7 +151,7 @@ void OBSBasic::RenderHorizontalMain(void *data, uint32_t, uint32_t)
 	gs_viewport_push();
 	gs_projection_push();
 
-	obs_display_t *display = window->ui->preview->GetDisplay(); // This is mainPreview_h
+	obs_display_t *display = window->ui->mainPreview_h->GetDisplay(); // This is mainPreview_h
 	uint32_t width, height;
 	obs_display_size(display, &width, &height);
 	float right = float(width) - window->previewX;
@@ -159,7 +159,7 @@ void OBSBasic::RenderHorizontalMain(void *data, uint32_t, uint32_t)
 
 	gs_ortho(-window->previewX, right, -window->previewY, bottom, -100.0f, 100.0f);
 
-	window->ui->preview->DrawOverflow();
+	window->ui->mainPreview_h->DrawOverflow();
 
 	/* --------------------------------------- */
 
@@ -199,13 +199,13 @@ void OBSBasic::RenderHorizontalMain(void *data, uint32_t, uint32_t)
 		RenderSafeAreas(window->fourByThreeSafeMargin, targetCX, targetCY);
 		RenderSafeAreas(window->leftLine, targetCX, targetCY);
 		RenderSafeAreas(window->topLine, targetCX, targetCY);
-		RenderSafeAreas(window->rightLine, targetCX, targetCY);
+		RenderSafeAreas(window->rightLine, targetCY, targetCY);
 	}
 
-	window->ui->preview->DrawSceneEditing();
+	window->ui->mainPreview_h->DrawSceneEditing();
 
 	if (window->drawSpacingHelpers)
-		window->ui->preview->DrawSpacingHelpers();
+		window->ui->mainPreview_h->DrawSpacingHelpers();
 
 	/* --------------------------------------- */
 
@@ -216,7 +216,6 @@ void OBSBasic::RenderHorizontalMain(void *data, uint32_t, uint32_t)
 }
 
 void OBSBasic::RenderVerticalMain(void *data, uint32_t, uint32_t)
-{
 {
 	GS_DEBUG_MARKER_BEGIN(GS_DEBUG_COLOR_DEFAULT, "RenderVerticalMain");
 
@@ -289,11 +288,11 @@ void OBSBasic::RenderVerticalMain(void *data, uint32_t, uint32_t)
 
 	/* --------------------------------------- */
 
-	gs_ortho(-previewX_v, right, -previewY_v, bottom, -100.0f, 100.0f);
+	gs_ortho(-window->previewX_v, right, -window->previewY_v, bottom, -100.0f, 100.0f);
 	gs_reset_viewport();
 
-	uint32_t targetCX = previewCX_v;
-	uint32_t targetCY = previewCY_v;
+	uint32_t targetCX = window->previewCX_v;
+	uint32_t targetCY = window->previewCY_v;
 
 	// Assuming drawSafeAreas and drawSpacingHelpers are global toggles.
 	// If they need to be per-preview, OBSBasic would need separate bools.
@@ -327,28 +326,28 @@ void OBSBasic::ResizePreview(uint32_t cx, uint32_t cy)
 	obs_video_info ovi;
 
 	/* resize preview panel to fix to the top section of the window */
-	targetSize = GetPixelSize(ui->preview);
+	targetSize = GetPixelSize(ui->mainPreview_h);
 
-	isFixedScaling = ui->preview->IsFixedScaling();
+	isFixedScaling = ui->mainPreview_h->IsFixedScaling();
 	obs_get_video_info(&ovi);
 
 	if (isFixedScaling) {
-		previewScale = ui->preview->GetScalingAmount();
+		previewScale = ui->mainPreview_h->GetScalingAmount();
 
-		ui->preview->ClampScrollingOffsets();
+		ui->mainPreview_h->ClampScrollingOffsets();
 
 		GetCenterPosFromFixedScale(int(cx), int(cy), targetSize.width() - PREVIEW_EDGE_SIZE * 2,
 					   targetSize.height() - PREVIEW_EDGE_SIZE * 2, previewX, previewY,
 					   previewScale);
-		previewX += ui->preview->GetScrollX();
-		previewY += ui->preview->GetScrollY();
+		previewX += ui->mainPreview_h->GetScrollX();
+		previewY += ui->mainPreview_h->GetScrollY();
 
 	} else {
 		GetScaleAndCenterPos(int(cx), int(cy), targetSize.width() - PREVIEW_EDGE_SIZE * 2,
 				     targetSize.height() - PREVIEW_EDGE_SIZE * 2, previewX, previewY, previewScale);
 	}
 
-	ui->preview->SetScalingAmount(previewScale);
+	ui->mainPreview_h->SetScalingAmount(previewScale);
 
 	previewX += float(PREVIEW_EDGE_SIZE);
 	previewY += float(PREVIEW_EDGE_SIZE);
@@ -424,7 +423,7 @@ void OBSBasic::on_previewDisabledWidget_customContextMenuRequested()
 
 	QAction *action = popup.addAction(QTStr("Basic.Main.PreviewConextMenu.Enable"), this, &OBSBasic::TogglePreview);
 	action->setCheckable(true);
-	action->setChecked(obs_display_enabled(ui->preview->GetDisplay()));
+	action->setChecked(obs_display_enabled(ui->mainPreview_h->GetDisplay()));
 
 	previewProjectorMain = new QMenu(QTStr("Projector.Open.Preview"));
 	AddProjectorMenuMonitors(previewProjectorMain, this, &OBSBasic::OpenPreviewProjector);
@@ -437,7 +436,7 @@ void OBSBasic::on_previewDisabledWidget_customContextMenuRequested()
 
 void OBSBasic::EnablePreviewDisplay(bool enable)
 {
-	obs_display_set_enabled(ui->preview->GetDisplay(), enable);
+	obs_display_set_enabled(ui->mainPreview_h->GetDisplay(), enable);
 	ui->previewContainer->setVisible(enable);
 	ui->previewDisabledWidget->setVisible(!enable);
 }
@@ -501,7 +500,7 @@ static bool nudge_callback(obs_scene_t *, obs_sceneitem_t *item, void *param)
 
 void OBSBasic::Nudge(int dist, MoveDir dir)
 {
-	if (ui->preview->Locked())
+	if (ui->mainPreview_h->Locked())
 		return;
 
 	struct vec2 offset;
@@ -553,8 +552,8 @@ void OBSBasic::Nudge(int dist, MoveDir dir)
 
 void OBSBasic::on_actionLockPreview_triggered()
 {
-	ui->preview->ToggleLocked();
-	ui->actionLockPreview->setChecked(ui->preview->Locked());
+	ui->mainPreview_h->ToggleLocked();
+	ui->actionLockPreview->setChecked(ui->mainPreview_h->Locked());
 }
 
 void OBSBasic::on_scalingMenu_aboutToShow()
@@ -578,18 +577,18 @@ void OBSBasic::on_scalingMenu_aboutToShow()
 
 void OBSBasic::setPreviewScalingWindow()
 {
-	ui->preview->SetFixedScaling(false);
-	ui->preview->ResetScrollingOffset();
+	ui->mainPreview_h->SetFixedScaling(false);
+	ui->mainPreview_h->ResetScrollingOffset();
 
-	emit ui->preview->DisplayResized();
+	emit ui->mainPreview_h->DisplayResized();
 }
 
 void OBSBasic::setPreviewScalingCanvas()
 {
-	ui->preview->SetFixedScaling(true);
-	ui->preview->SetScalingLevel(0);
+	ui->mainPreview_h->SetFixedScaling(true);
+	ui->mainPreview_h->SetScalingLevel(0);
 
-	emit ui->preview->DisplayResized();
+	emit ui->mainPreview_h->DisplayResized();
 }
 
 void OBSBasic::setPreviewScalingOutput()
@@ -597,12 +596,12 @@ void OBSBasic::setPreviewScalingOutput()
 	obs_video_info ovi;
 	obs_get_video_info(&ovi);
 
-	ui->preview->SetFixedScaling(true);
+	ui->mainPreview_h->SetFixedScaling(true);
 	float scalingAmount = float(ovi.output_width) / float(ovi.base_width);
 	// log base ZOOM_SENSITIVITY of x = log(x) / log(ZOOM_SENSITIVITY)
 	int32_t approxScalingLevel = int32_t(round(log(scalingAmount) / log(ZOOM_SENSITIVITY)));
-	ui->preview->SetScalingLevelAndAmount(approxScalingLevel, scalingAmount);
-	emit ui->preview->DisplayResized();
+	ui->mainPreview_h->SetScalingLevelAndAmount(approxScalingLevel, scalingAmount);
+	emit ui->mainPreview_h->DisplayResized();
 }
 
 static void ConfirmColor(SourceTree *sources, const QColor &color, QModelIndexList selectedItems)
@@ -756,9 +755,9 @@ void OBSBasic::UpdatePreviewOverflowSettings()
 	bool select = config_get_bool(App()->GetUserConfig(), "BasicWindow", "OverflowSelectionHidden");
 	bool always = config_get_bool(App()->GetUserConfig(), "BasicWindow", "OverflowAlwaysVisible");
 
-	ui->preview->SetOverflowHidden(hidden);
-	ui->preview->SetOverflowSelectionHidden(select);
-	ui->preview->SetOverflowAlwaysVisible(always);
+	ui->mainPreview_h->SetOverflowHidden(hidden);
+	ui->mainPreview_h->SetOverflowSelectionHidden(select);
+	ui->mainPreview_h->SetOverflowAlwaysVisible(always);
 }
 
 static inline QColor color_from_int(long long val)
@@ -805,11 +804,11 @@ float OBSBasic::GetDevicePixelRatio()
 
 void OBSBasic::UpdatePreviewControls()
 {
-	const int scalingLevel = ui->preview->GetScalingLevel();
+	const int scalingLevel = ui->mainPreview_h->GetScalingLevel();
 
-	if (!ui->preview->IsFixedScaling()) {
-		ui->previewXScrollBar->setRange(0, 0);
-		ui->previewYScrollBar->setRange(0, 0);
+	if (!ui->mainPreview_h->IsFixedScaling()) {
+		ui->previewXScrollBar_h->setRange(0, 0);
+		ui->previewYScrollBar_h->setRange(0, 0);
 
 		ui->actionPreviewResetZoom->setEnabled(false);
 
@@ -820,10 +819,10 @@ void OBSBasic::UpdatePreviewControls()
 	const bool maxZoom = scalingLevel == -MAX_SCALING_LEVEL;
 
 	ui->actionPreviewZoomIn->setEnabled(!minZoom);
-	ui->previewZoomInButton->setEnabled(!minZoom);
+	ui->previewZoomInButton_h->setEnabled(!minZoom);
 
 	ui->actionPreviewZoomOut->setEnabled(!maxZoom);
-	ui->previewZoomOutButton->setEnabled(!maxZoom);
+	ui->previewZoomOutButton_h->setEnabled(!maxZoom);
 
 	ui->actionPreviewResetZoom->setEnabled(scalingLevel != 0);
 }
@@ -872,7 +871,7 @@ void OBSBasic::PreviewScalingModeChanged(int value)
 
 void OBSBasic::PreviewScalingModeChanged_V(int value)
 {
-	if (!ui || !ui->mainPreview_v || loading) return;
+	if (!ui || !ui->mainPreview_v || main->loading) return;
 
 	QString scaleType;
 	switch (value) {
@@ -893,13 +892,13 @@ void OBSBasic::PreviewScalingModeChanged_V(int value)
 		scaleType = "Window";
 	}
 	config_set_string(App()->GetUserConfig(), "BasicWindow", "PreviewVScaleType", scaleType.toUtf8().constData());
-	SetWidgetChanged(ui->previewScalingMode_v);
+	main->SetWidgetChanged(ui->previewScalingMode_v);
 	UpdatePreviewControls_V();
 }
 
 void OBSBasic::PreviewScalePercentChanged_V(int value)
 {
-	if (!ui || !ui->mainPreview_v || loading) return;
+	if (!ui || !ui->mainPreview_v || main->loading) return;
 
 	// This slot is intended if ui->previewScalePercent_v were a QSpinBox.
 	// Currently, it's a QLabel updated by OBSBasicPreview::scalingChanged signal.

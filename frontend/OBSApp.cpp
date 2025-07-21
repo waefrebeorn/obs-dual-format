@@ -16,6 +16,7 @@
 ******************************************************************************/
 
 #include "OBSApp.hpp"
+#include <obs.h>
 #include <obs-source.h>
 #include <obs-frontend-api.h>
 #include <obs-output.h>
@@ -834,7 +835,7 @@ void OBSApp::SetCurrentHorizontalScene(obs_source_t *scene)
 	obs_source_t *old_scene = current_horizontal_scene;
 	current_horizontal_scene = scene;
 	if (current_horizontal_scene)
-		obs_source_addref(current_horizontal_scene);
+		obs_source_get_ref(current_horizontal_scene);
 	if (old_scene)
 		obs_source_release(old_scene);
 
@@ -868,7 +869,7 @@ void OBSApp::SetCurrentVerticalScene(obs_source_t *scene)
 	obs_source_t *old_scene = current_vertical_scene;
 	current_vertical_scene = scene;
 	if (current_vertical_scene)
-		obs_source_addref(current_vertical_scene);
+		obs_source_get_ref(current_vertical_scene);
 	if (old_scene)
 		obs_source_release(old_scene);
 
@@ -933,7 +934,7 @@ void OBSApp::SetupOutputs()
 				}
 			} else { // Advanced mode
 				h_encoder_id = config_get_string(profile_config, "AdvOut", "Encoder");
-				BPtr<char> profile_config_path = obs_frontend_get_profile_config_path();
+				BPtr<char> profile_config_path = obs_frontend_get_current_profile_path();
 				std::string json_settings_path = profile_config_path.Get();
 				json_settings_path += "/streamEncoder.json";
 
@@ -1043,7 +1044,7 @@ void OBSApp::SetupOutputs()
 					}
 				} else { // Advanced mode for vertical stream
 					v_encoder_id = config_get_string(profile_config, "AdvOut", "Encoder_V_Stream");
-					BPtr<char> profile_config_path = obs_frontend_get_profile_config_path();
+					BPtr<char> profile_config_path = obs_frontend_get_current_profile_path();
 					std::string v_json_settings_path = profile_config_path.Get();
 					v_json_settings_path += "/streamEncoder_v_stream.json";
 
@@ -1069,7 +1070,7 @@ void OBSApp::SetupOutputs()
 
 						const obs_video_info* v_ovi = App()->GetVerticalVideoInfo();
 						if (v_ovi && v_ovi->base_width > 0) {
-							obs_output_override_video_settings(vertical_stream_output, v_ovi);
+							obs_output_set_media(vertical_stream_output, obs_get_video(), obs_get_audio());
 							blog(LOG_INFO, "Vertical output video settings overridden to: %dx%d @ %d/%d fps",
 								v_ovi->output_width, v_ovi->output_height, v_ovi->fps_num, v_ovi->fps_den);
 						} else {

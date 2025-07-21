@@ -333,7 +333,7 @@ void OBSBasic::UpdatePreviewProgramIndicators()
 	bool labels = previewProgramMode ? config_get_bool(App()->GetUserConfig(), "BasicWindow", "StudioModeLabels")
 					 : false;
 
-	ui->previewLabel->setVisible(labels);
+	ui->previewLabel_h->setVisible(labels);
 
 	if (programLabel)
 		programLabel->setVisible(labels);
@@ -346,8 +346,8 @@ void OBSBasic::UpdatePreviewProgramIndicators()
 
 	QString program = QTStr("StudioMode.ProgramSceneName").arg(QT_UTF8(obs_source_get_name(GetProgramSource())));
 
-	if (ui->previewLabel->text() != preview)
-		ui->previewLabel->setText(preview);
+	if (ui->previewLabel_h->text() != preview)
+		ui->previewLabel_h->setText(preview);
 
 	if (programLabel && programLabel->text() != program)
 		programLabel->setText(program);
