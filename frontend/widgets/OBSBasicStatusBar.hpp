@@ -91,9 +91,13 @@ private:
 	void UpdateRecordTime();
 	void UpdateRecordTimeLabel();
 	void UpdateDroppedFrames();
+	void UpdateVerticalBandwidth();
+	void UpdateVerticalDroppedFrames();
 
 	static void OBSOutputReconnect(void *data, calldata_t *params);
 	static void OBSOutputReconnectSuccess(void *data, calldata_t *params);
+	static void OBSOutputVerticalReconnect(void *data, calldata_t *params);
+	static void OBSOutputVerticalReconnectSuccess(void *data, calldata_t *params);
 
 public slots:
 	void UpdateCPUUsage();

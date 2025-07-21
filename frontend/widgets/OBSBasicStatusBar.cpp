@@ -1,5 +1,6 @@
 #include "OBSBasicStatusBar.hpp"
 #include "ui_StatusBarWidget.h"
+#include <numeric>
 
 #include <widgets/OBSBasic.hpp>
 
@@ -26,7 +27,7 @@ OBSBasicStatusBar::OBSBasicStatusBar(QWidget *parent)
 
 	statusWidget = new StatusBarWidget(this);
 	statusWidget->ui->delayInfo->setText("");
-	statusWidget->ui->droppedFrames->setText(QTStr("DroppedFrames").arg("0", "0.0"));
+	statusWidget->ui->droppedFrames->setText(QTStr("DroppedFrames").arg("0").arg("0.0"));
 	statusWidget->ui->statusIcon->setPixmap(inactivePixmap);
 	statusWidget->ui->streamIcon->setPixmap(streamingInactivePixmap);
 	statusWidget->ui->streamTime->setDisabled(true);
@@ -373,7 +374,7 @@ void OBSBasicStatusBar::UpdateDroppedFrames()
 		return;
 
 	QString text = QTStr("DroppedFrames");
-	text = text.arg(QString::number(totalDropped), QString::number(percent, 'f', 1));
+	text = text.arg(QString::number(totalDropped)).arg(QString::number(percent, 'f', 1));
 	statusWidget->ui->droppedFrames->setText(text);
 
 	if (!statusWidget->ui->issuesFrame->isVisible())
@@ -398,7 +399,7 @@ void OBSBasicStatusBar::UpdateDroppedFrames()
 	float congestionOverTime = avgCongestion;
 
 	if (congestionArray.size() >= congestionUpdateSeconds) {
-		congestionOverTime = accumulate(congestionArray.begin(), congestionArray.end(), 0.0f) /
+		congestionOverTime = std::accumulate(congestionArray.begin(), congestionArray.end(), 0.0f) /
 				     (float)congestionArray.size();
 		congestionArray.clear();
 		update = true;
