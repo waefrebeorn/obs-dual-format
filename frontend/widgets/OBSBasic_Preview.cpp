@@ -217,7 +217,6 @@ void OBSBasic::RenderHorizontalMain(void *data, uint32_t, uint32_t)
 
 void OBSBasic::RenderVerticalMain(void *data, uint32_t, uint32_t)
 {
-{
 	GS_DEBUG_MARKER_BEGIN(GS_DEBUG_COLOR_DEFAULT, "RenderVerticalMain");
 
 	OBSBasic *window = static_cast<OBSBasic *>(data);

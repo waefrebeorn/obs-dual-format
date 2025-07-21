@@ -603,7 +603,7 @@ void OBSBasic::CreateSourcePopupMenu(int idx, bool preview)
 		QAction *action =
 			popup.addAction(QTStr("Basic.Main.PreviewConextMenu.Enable"), this, &OBSBasic::TogglePreview);
 		action->setCheckable(true);
-		action->setChecked(obs_display_enabled(ui->preview->GetDisplay()));
+		action->setChecked(obs_display_enabled(ui->mainPreview_h->GetDisplay()));
 		if (IsPreviewProgramMode())
 			action->setEnabled(false);
 
