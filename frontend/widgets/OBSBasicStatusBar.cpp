@@ -56,14 +56,14 @@ OBSBasicStatusBar::OBSBasicStatusBar(QWidget *parent)
 	// Connect signals for vertical streaming from BasicOutputHandler
 	OBSBasic *main = qobject_cast<OBSBasic *>(parent);
 	if (main && main->outputHandler) {
-		connect(main->outputHandler.get(), &BasicOutputHandler::startVerticalStreaming,
-		        this, &OBSBasicStatusBar::VerticalStreamStarted);
-		connect(main->outputHandler.get(), &BasicOutputHandler::stopVerticalStreaming,
-		        this, &OBSBasicStatusBar::VerticalStreamStopped);
-		connect(main->outputHandler.get(), &BasicOutputHandler::verticalStreamDelayStarting,
-		        this, &OBSBasicStatusBar::VerticalStreamDelayStarting);
-		connect(main->outputHandler.get(), &BasicOutputHandler::verticalStreamStopping,
-		        this, &OBSBasicStatusBar::VerticalStreamStopping);
+		connect(main->outputHandler.get(), SIGNAL(startVerticalStreaming(obs_output_t*)),
+		        this, SLOT(VerticalStreamStarted(obs_output_t*)));
+		connect(main->outputHandler.get(), SIGNAL(stopVerticalStreaming(int, QString)),
+		        this, SLOT(VerticalStreamStopped(int, QString)));
+		connect(main->outputHandler.get(), SIGNAL(verticalStreamDelayStarting(int)),
+		        this, SLOT(VerticalStreamDelayStarting(int)));
+		connect(main->outputHandler.get(), SIGNAL(verticalStreamStopping()),
+		        this, SLOT(VerticalStreamStopping()));
 		// TODO: Connect vertical recording signals when implemented
 	}
 
@@ -738,7 +738,7 @@ void OBSBasicStatusBar::VerticalStreamStopped(int code, QString last_error)
 	if (code != 0 && !last_error.isEmpty()) {
 		// TODO (UI): Consider a different message or way to show vertical stream specific errors if general showMessage is too intrusive.
 		// For now, using general showMessage. A dedicated label for vertical stream errors might be better.
-		showMessage(QTStr("Output.StreamStoppedPrematurely.Vertical", "Vertical Stream Stopped Prematurely: Code %1, Error: %2").arg(code).arg(last_error), 5000);
+		showMessage(QTStr("Output.StreamStoppedPrematurely.Vertical").arg(code).arg(last_error), 5000);
 	}
 }
 
@@ -760,7 +760,7 @@ void OBSBasicStatusBar::UpdateVerticalStreamTime()
 	if (!statusWidget->ui->vStreamTime->isEnabled()) statusWidget->ui->vStreamTime->setDisabled(false);
 
 	if (verticalStreamReconnectTimeout_ > 0) {
-		QString msg = QTStr("Basic.StatusBar.Reconnecting.Vertical", "Vertical Reconnecting: attempt %1 in %2 sec")
+		QString msg = QTStr("Basic.StatusBar.Reconnecting.Vertical")
 				      .arg(QString::number(verticalStreamRetries_), QString::number(verticalStreamReconnectTimeout_));
 		// TODO: Show this message appropriately, perhaps in a dedicated vertical status message area or log
 		// For now, we can use the main message bar, or just log it.
@@ -772,7 +772,7 @@ void OBSBasicStatusBar::UpdateVerticalStreamTime()
 
 
 	} else if (verticalStreamRetries_ > 0 && !verticalStreamDisconnected_) { // Only show attempting if not already in hard disconnected state
-		QString msg = QTStr("Basic.StatusBar.AttemptingReconnect.Vertical", "Vertical Stream: Attempting reconnect %1...")
+		QString msg = QTStr("Basic.StatusBar.AttemptingReconnect.Vertical")
                                 .arg(QString::number(verticalStreamRetries_));
 		// showMessage(msg);
 	}
@@ -821,7 +821,7 @@ void OBSBasicStatusBar::UpdateVerticalDroppedFrames() {
     int totalFrames = obs_output_get_total_frames(output);
     double percent = (totalFrames > 0) ? ((double)totalDropped / (double)totalFrames * 100.0) : 0.0;
 
-    QString text = QTStr("DroppedFrames.Vertical", "V Dropped: %1 (%2%)")
+    QString text = QTStr("DroppedFrames.Vertical")
                            .arg(QString::number(totalDropped))
                            .arg(QString::number(percent, 'f', 1));
     statusWidget->ui->vDroppedFrames->setText(text);
