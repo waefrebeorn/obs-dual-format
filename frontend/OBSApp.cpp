@@ -875,12 +875,16 @@ void OBSApp::SetCurrentVerticalScene(obs_source_t *scene)
 
 	blog(LOG_INFO, "Current vertical scene set.");
 
-
-	// If vertical stream output is active, update its media sources
-	if (vertical_stream_output && obs_output_active(vertical_stream_output)) {
-		obs_output_set_media(vertical_stream_output, current_vertical_scene, obs_get_audio());
-		blog(LOG_INFO, "Updated active vertical stream output media to scene: %s and main audio.",
-		     current_vertical_scene ? obs_source_get_name(current_vertical_scene) : "(none)");
+	// If vertical stream output is active, update its video source
+	if (vertical_stream_output &&
+	    obs_output_active(vertical_stream_output)) {
+		obs_output_set_video_source(vertical_stream_output,
+					    current_vertical_scene);
+		blog(LOG_INFO,
+		     "Updated active vertical stream output video source to: %s",
+		     current_vertical_scene
+			     ? obs_source_get_name(current_vertical_scene)
+			     : "(none)");
 	}
 
 
@@ -1079,14 +1083,26 @@ void OBSApp::SetupOutputs()
 							blog(LOG_WARNING, "Vertical OVI not valid for overriding output settings. Output may fail or use unexpected defaults.");
 						}
 
-						obs_source_t *vertical_scene_to_stream = App()->GetCurrentVerticalScene();
+						obs_source_t *vertical_scene_to_stream =
+							App()->GetCurrentVerticalScene();
 						if (vertical_scene_to_stream) {
-							obs_output_set_media(vertical_stream_output, vertical_scene_to_stream, obs_get_audio());
-							blog(LOG_INFO, "Vertical stream output media set to scene '%s' and main audio.", obs_source_get_name(vertical_scene_to_stream));
+							obs_output_set_video_source(
+								vertical_stream_output,
+								vertical_scene_to_stream);
+							blog(LOG_INFO,
+							     "Vertical stream output video source set to: %s",
+							     obs_source_get_name(
+								     vertical_scene_to_stream));
 						} else {
-							obs_output_set_media(vertical_stream_output, nullptr, obs_get_audio());
-							blog(LOG_WARNING, "No current vertical scene set for vertical stream output. Media set to main audio only.");
+							obs_output_set_video_source(
+								vertical_stream_output,
+								nullptr);
+							blog(LOG_WARNING,
+							     "No current vertical scene set for vertical stream output.");
 						}
+						obs_output_set_audio_source(
+							vertical_stream_output,
+							obs_get_audio());
 
 						blog(LOG_INFO, "Vertical stream output '%s' created for service '%s'.", v_encoder_id, v_service_type);
 					} else {

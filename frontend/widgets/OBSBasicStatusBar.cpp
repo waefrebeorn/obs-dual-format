@@ -53,18 +53,16 @@ OBSBasicStatusBar::OBSBasicStatusBar(QWidget *parent)
 	UpdateIcons(); // This will need to be updated to handle vertical icons if they are different
 	connect(App(), &OBSApp::StyleChanged, this, &OBSBasicStatusBar::UpdateIcons);
 
-	// Connect signals for vertical streaming from BasicOutputHandler
-	OBSBasic *main = qobject_cast<OBSBasic *>(parent);
-	if (main && main->outputHandler) {
-		connect(main->outputHandler.get(), SIGNAL(startVerticalStreaming(obs_output_t*)),
-		        this, SLOT(VerticalStreamStarted(obs_output_t*)));
-		connect(main->outputHandler.get(), SIGNAL(stopVerticalStreaming(int, QString)),
-		        this, SLOT(VerticalStreamStopped(int, QString)));
-		connect(main->outputHandler.get(), SIGNAL(verticalStreamDelayStarting(int)),
-		        this, SLOT(VerticalStreamDelayStarting(int)));
-		connect(main->outputHandler.get(), SIGNAL(verticalStreamStopping()),
-		        this, SLOT(VerticalStreamStopping()));
-		// TODO: Connect vertical recording signals when implemented
+	OBSBasic *main = qobject_cast<OBSBasic *>(parent());
+	if (main) {
+		connect(main, SIGNAL(startVerticalStreaming(obs_output_t *)), this,
+			SLOT(VerticalStreamStarted(obs_output_t *)));
+		connect(main, SIGNAL(stopVerticalStreaming(int, QString)), this,
+			SLOT(VerticalStreamStopped(int, QString)));
+		connect(main, SIGNAL(verticalStreamDelayStarting(int)), this,
+			SLOT(VerticalStreamDelayStarting(int)));
+		connect(main, SIGNAL(verticalStreamStopping()), this,
+			SLOT(VerticalStreamStopping()));
 	}
 
 

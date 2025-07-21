@@ -64,6 +64,12 @@
 #include "Windows.h"
 #endif
 
+#include <obs-frontend-api.h>
+#include <obs-module.h>
+#include <obs-transition.h>
+#include <obs-source.h>
+#include <obs-hotkey.h>
+
 #include "moc_OBSBasic.cpp"
 
 using namespace std;
@@ -2373,26 +2379,26 @@ void OBSBasic::HandleVerticalSceneChanged(obs_source_t *new_scene)
 // Function to replace - STARTS
 void OBSBasic::SetCurrentScene(obs_source_t *scene, bool force)
 {
-	if (!force && scene == currentScene)
+	if (!force && scene == GetCurrentSceneSource())
 		return;
 
 	/* ------------------------------------------------------ */
 	/* save previous scene                                    */
 
-	OBSScene previousScene = currentScene;
+	OBSScene previousScene = GetCurrentScene();
 	if (previousScene)
-		obs_source_set_monitoring_type(previousScene,
-					       OBS_MONITORING_TYPE_NONE);
+		obs_source_set_monitoring_type(
+			obs_scene_get_source(previousScene),
+			OBS_MONITORING_TYPE_NONE);
 
 	/* ------------------------------------------------------ */
 	/* activate new scene                                     */
 
 	OBSScene nextScene = obs_scene_from_source(scene);
-	currentScene = nextScene;
 	if (nextScene) {
 		obs_source_inc_showing(scene);
 		obs_source_set_monitoring_type(
-			scene, GetAudioMonitoringTypeFromConfig());
+			scene, GetAudioMonitoringTypeFromSettings());
 	}
 
 	/* ------------------------------------------------------ */
@@ -2400,16 +2406,18 @@ void OBSBasic::SetCurrentScene(obs_source_t *scene, bool force)
 
 	if (previewProgramMode) {
 		obs_frontend_set_current_preview_scene(scene);
-		programScene = obs_frontend_get_program_scene();
+		programScene = obs_frontend_get_current_preview_scene();
 
-		if (programScene && programScene != programScene)
+		if (lastProgramScene && lastProgramScene != programScene)
 			obs_source_set_monitoring_type(
-				programScene, OBS_MONITORING_TYPE_NONE);
+				lastProgramScene, OBS_MONITORING_TYPE_NONE);
+
+		lastProgramScene = programScene;
 
 		if (programScene)
 			obs_source_set_monitoring_type(
 				programScene,
-				GetAudioMonitoringTypeFromConfig());
+				GetAudioMonitoringTypeFromSettings());
 
 	} else {
 		obs_frontend_set_current_scene(scene);
@@ -2444,7 +2452,7 @@ void OBSBasic::SetTransition(OBSSource transition)
 	current_transition = transition;
 	if (transition) {
 		obs_source_set_monitoring_type(
-			transition, GetAudioMonitoringTypeFromConfig());
+			transition, GetAudioMonitoringTypeFromSettings());
 	}
 
 	obs_frontend_defer_event(OBS_FRONTEND_EVENT_TRANSITION_CHANGED);
@@ -2500,8 +2508,8 @@ void OBSBasic::TransitionToScene(OBSSource scene, bool force, bool quickTransiti
 		}
 
 		if (black)
-			obs_transition_set_dest_source(
-				trans, nullptr, OBS_TRANSITION_MODE_OVERRIDE);
+			obs_transition_set_destination(trans, nullptr,
+						       OBS_TRANSITION_MODE_OVERRIDE);
 		else
 			obs_transition_set_dest_source(trans, scene,
 						       OBS_TRANSITION_MODE_AUTO);
@@ -2552,7 +2560,8 @@ void OBSBasic::TransitionClicked()
 		return;
 
 	if (previewProgramMode) {
-		TransitionToScene(GetCurrentScene(), true, false, 0, false, true);
+		TransitionToScene(GetCurrentSceneSource(), true, false, 0, false,
+				  true);
 	}
 }
 
@@ -2566,7 +2575,7 @@ void OBSBasic::TransitionStopped()
 		if (programScene)
 			obs_source_set_monitoring_type(
 				programScene,
-				GetAudioMonitoringTypeFromConfig());
+				GetAudioMonitoringTypeFromSettings());
 
 		obs_frontend_defer_event(
 			OBS_FRONTEND_EVENT_PROGRAM_SCENE_CHANGED);
@@ -2847,8 +2856,8 @@ void OBSBasic::on_transitions_currentIndexChanged(int index)
 void OBSBasic::on_transitionAdd_clicked()
 {
 	QMenu menu(this);
-	obs_frontend_populate_transition_type_list(
-		&menu, this, SLOT(AddTransition(const char *)));
+	obs_frontend_populate_transition_types(&menu, this,
+					       SLOT(AddTransition(const char *)));
 	menu.exec(QCursor::pos());
 }
 
@@ -2891,8 +2900,8 @@ void OBSBasic::on_transitionDuration_valueChanged()
 	if (loading)
 		return;
 
-	obs_transition_set_duration(current_transition,
-				    ui->transitionDuration->value());
+	obs_source_set_transition_duration(
+		current_transition, ui->transitionDuration->value());
 
 	obs_frontend_defer_event(OBS_FRONTEND_EVENT_TRANSITION_DURATION_CHANGED);
 }

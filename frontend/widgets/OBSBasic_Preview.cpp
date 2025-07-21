@@ -871,7 +871,8 @@ void OBSBasic::PreviewScalingModeChanged(int value)
 
 void OBSBasic::PreviewScalingModeChanged_V(int value)
 {
-	if (!ui || !ui->mainPreview_v || main->loading) return;
+	if (!ui || !ui->mainPreview_v || loading)
+		return;
 
 	QString scaleType;
 	switch (value) {
@@ -891,14 +892,16 @@ void OBSBasic::PreviewScalingModeChanged_V(int value)
 		setPreviewScalingWindow_V();
 		scaleType = "Window";
 	}
-	config_set_string(App()->GetUserConfig(), "BasicWindow", "PreviewVScaleType", scaleType.toUtf8().constData());
-	main->SetWidgetChanged(ui->previewScalingMode_v);
+	config_set_string(App()->GetUserConfig(), "BasicWindow",
+			  "PreviewVScaleType", scaleType.toUtf8().constData());
+	SetWidgetChanged(ui->previewScalingMode_v);
 	UpdatePreviewControls_V();
 }
 
 void OBSBasic::PreviewScalePercentChanged_V(int value)
 {
-	if (!ui || !ui->mainPreview_v || main->loading) return;
+	if (!ui || !ui->mainPreview_v || loading)
+		return;
 
 	// This slot is intended if ui->previewScalePercent_v were a QSpinBox.
 	// Currently, it's a QLabel updated by OBSBasicPreview::scalingChanged signal.
@@ -947,27 +950,28 @@ void OBSBasic::setPreviewScalingOutput_V()
 
 void OBSBasic::UpdatePreviewScalingMenu_V()
 {
-    if (!ui || !ui->mainPreview_v) return;
+	if (!ui || !ui->mainPreview_v)
+		return;
 
-    bool fixedScaling = ui->mainPreview_v->IsFixedScaling();
-    float scalingAmount = ui->mainPreview_v->GetScalingAmount();
+	bool fixedScaling = ui->mainPreview_v->IsFixedScaling();
+	float scalingAmount = ui->mainPreview_v->GetScalingAmount();
 
-    // Assuming similar QActions (actionScaleWindow_v, etc.) would exist for a vertical preview context menu
-    // For now, this function might not be directly used if there's no separate context menu for vertical scaling.
-    // If ui->previewScalingMode_v (the QComboBox) is the primary control, this menu update logic might be less critical.
+	// Assuming similar QActions (actionScaleWindow_v, etc.) would exist for a vertical preview context menu
+	// For now, this function might not be directly used if there's no separate context menu for vertical scaling.
+	// If ui->previewScalingMode_v (the QComboBox) is the primary control, this menu update logic might be less critical.
 
-    // Example if actions existed:
-    // if (!fixedScaling) {
-    //     ui->actionScaleWindow_v->setChecked(true);
-    //     ui->actionScaleCanvas_v->setChecked(false);
-    //     ui->actionScaleOutput_v->setChecked(false);
-    //     return;
-    // }
-    // const obs_video_info* ovi_v = App()->GetVerticalVideoInfo();
-    // if (!ovi_v || ovi_v->base_width == 0) return;
-    // ui->actionScaleWindow_v->setChecked(false);
-    // ui->actionScaleCanvas_v->setChecked(scalingAmount == 1.0f);
-    // ui->actionScaleOutput_v->setChecked(scalingAmount == float(ovi_v->output_width) / float(ovi_v->base_width));
+	// Example if actions existed:
+	// if (!fixedScaling) {
+	//     ui->actionScaleWindow_v->setChecked(true);
+	//     ui->actionScaleCanvas_v->setChecked(false);
+	//     ui->actionScaleOutput_v->setChecked(false);
+	//     return;
+	// }
+	// const obs_video_info* ovi_v = App()->GetVerticalVideoInfo();
+	// if (!ovi_v || ovi_v->base_width == 0) return;
+	// ui->actionScaleWindow_v->setChecked(false);
+	// ui->actionScaleCanvas_v->setChecked(scalingAmount == 1.0f);
+	// ui->actionScaleOutput_v->setChecked(scalingAmount == float(ovi_v->output_width) / float(ovi_v->base_width));
 	UNUSED_PARAMETER(fixedScaling);
 	UNUSED_PARAMETER(scalingAmount);
 }
