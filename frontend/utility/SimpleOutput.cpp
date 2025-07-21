@@ -804,12 +804,12 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 	// Vertical Stream Output
 	bool verticalAttempted = false;
 	bool verticalSuccessfullyStarted = false;
-	if (App()->IsDualOutputActive() && this->verticalStreamOutput && videoStreaming_v) {
+	if (App()->IsDualOutputActive() && verticalStreamOutput && videoStreaming_v) {
 		verticalAttempted = true;
 		blog(LOG_INFO, "Attempting to start vertical stream (SimpleOutput)...");
 
 		// Ensure the video encoder configured by SimpleOutput::Update() is set on the output
-		obs_output_set_video_encoder(this->verticalStreamOutput, videoStreaming_v);
+		obs_output_set_video_encoder(verticalStreamOutput, videoStreaming_v);
 		// Audio encoder for vertical stream is handled by the service using settings from OBSApp::SetupOutputs,
 		// or directly on the output if it's a muxing type not using a separate service audio encoder.
 		// SimpleOutput doesn't manage a separate audio encoder instance for vertical to set here.
@@ -818,16 +818,16 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 		// OBSDataAutoRelease settings_v = obs_data_create();
 		// obs_data_set_string(settings_v, "bind_ip", config_get_string(main->Config(), "Output", "BindIP_V_Stream"));
 		// ... etc. ...
-		// obs_output_update(this->verticalStreamOutput, settings_v);
-		// obs_output_set_delay(this->verticalStreamOutput, ...);
-		// obs_output_set_reconnect_settings(this->verticalStreamOutput, ...);
+		// obs_output_update(verticalStreamOutput, settings_v);
+		// obs_output_set_delay(verticalStreamOutput, ...);
+		// obs_output_set_reconnect_settings(verticalStreamOutput, ...);
 		// For now, vertical stream uses default output settings or those applied during its creation in OBSApp::SetupOutputs
 
-		if (obs_output_start(this->verticalStreamOutput)) {
+		if (obs_output_start(verticalStreamOutput)) {
 			blog(LOG_INFO, "Vertical stream started successfully (SimpleOutput).");
 			verticalSuccessfullyStarted = true;
 		} else {
-			const char *error_v = obs_output_get_last_error(this->verticalStreamOutput);
+			const char *error_v = obs_output_get_last_error(verticalStreamOutput);
 			blog(LOG_WARNING, "Vertical stream output failed to start! %s", error_v ? error_v : "Unknown error");
 			if (!horizontalStarted || (error_v && *error_v)) {
 				if(!lastError.empty() && lastError.back() != ' ') lastError += "; ";
@@ -837,7 +837,7 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 			verticalSuccessfullyStarted = false;
 		}
 	} else if (App()->IsDualOutputActive()) {
-		if (!this->verticalStreamOutput) blog(LOG_INFO, "Dual output active, but BasicOutputHandler::verticalStreamOutput is not set for SimpleOutput (cannot start vertical stream).");
+		if (!verticalStreamOutput) blog(LOG_INFO, "Dual output active, but BasicOutputHandler::verticalStreamOutput is not set for SimpleOutput (cannot start vertical stream).");
 		if (!videoStreaming_v) blog(LOG_INFO, "Dual output active, but SimpleOutput::videoStreaming_v (encoder) is not set (cannot start vertical stream).");
 	}
 
@@ -863,10 +863,12 @@ void SimpleOutput::StopStreaming(bool force)
 		else obs_output_stop(h_output);
 	}
 
-	if (this->verticalStreamOutput && obs_output_active(this->verticalStreamOutput)) {
+	if (verticalStreamOutput && obs_output_active(verticalStreamOutput)) {
 		blog(LOG_INFO, "Stopping vertical stream (SimpleOutput)...");
-		if (force) obs_output_force_stop(this->verticalStreamOutput);
-		else obs_output_stop(this->verticalStreamOutput);
+		if (force)
+			obs_output_force_stop(verticalStreamOutput);
+		else
+			obs_output_stop(verticalStreamOutput);
 	}
 
 	// multitrackVideoActive is reset by the stop signal handler for the multitrack output
@@ -942,7 +944,7 @@ bool SimpleOutput::ReplayBufferActive() const
 
 bool SimpleOutput::StartVerticalStreaming(obs_service_t *service)
 {
-	if (!App()->IsDualOutputActive() || !this->verticalStreamOutput || !videoStreaming_v) {
+	if (!App()->IsDualOutputActive() || !verticalStreamOutput || !videoStreaming_v) {
 		blog(LOG_WARNING, "Vertical stream cannot be started: Not in dual output mode or vertical output/encoder not configured (SimpleOutput).");
 		return false;
 	}
@@ -956,17 +958,17 @@ bool SimpleOutput::StartVerticalStreaming(obs_service_t *service)
 
 	// Example of setting service if it were managed here:
 	// if (service) { // A specific service for vertical stream
-	//     obs_output_set_service(this->verticalStreamOutput, service);
+	//     obs_output_set_service(verticalStreamOutput, service);
 	// } else {
 	//     blog(LOG_WARNING, "No service provided for StartVerticalStreaming.");
 	//     return false;
 	// }
 
-	if (obs_output_start(this->verticalStreamOutput)) {
+	if (obs_output_start(verticalStreamOutput)) {
 		blog(LOG_INFO, "Vertical stream started successfully via StartVerticalStreaming (SimpleOutput).");
 		return true;
 	} else {
-		const char *error_v = obs_output_get_last_error(this->verticalStreamOutput);
+		const char *error_v = obs_output_get_last_error(verticalStreamOutput);
 		lastError = "VerticalS StartOnly: ";
 		lastError += (error_v && *error_v) ? error_v : "Unknown error";
 		blog(LOG_WARNING, "Vertical stream output (StartOnly) failed to start! %s", lastError.c_str());
@@ -976,10 +978,10 @@ bool SimpleOutput::StartVerticalStreaming(obs_service_t *service)
 
 void SimpleOutput::StopVerticalStreaming(bool force)
 {
-	if (this->verticalStreamOutput && obs_output_active(this->verticalStreamOutput)) {
+	if (verticalStreamOutput && obs_output_active(verticalStreamOutput)) {
 		blog(LOG_INFO, "Stopping ONLY vertical stream (SimpleOutput)...");
-		if (force) obs_output_force_stop(this->verticalStreamOutput);
-		else obs_output_stop(this->verticalStreamOutput);
+		if (force) obs_output_force_stop(verticalStreamOutput);
+		else obs_output_stop(verticalStreamOutput);
 	} else {
 		blog(LOG_INFO, "StopVerticalStreaming called but vertical stream not active or not configured (SimpleOutput).");
 	}
@@ -987,5 +989,5 @@ void SimpleOutput::StopVerticalStreaming(bool force)
 
 bool SimpleOutput::VerticalStreamingActive() const
 {
-	return this->verticalStreamOutput && obs_output_active(this->verticalStreamOutput);
+	return verticalStreamOutput && obs_output_active(verticalStreamOutput);
 }

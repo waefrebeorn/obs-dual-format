@@ -1037,6 +1037,11 @@ signals:
 	void RecordingStopping();
 	void RecordingStopped();
 
+	void startVerticalStreaming(obs_output_t *output);
+	void stopVerticalStreaming(int code, QString last_error);
+	void verticalStreamDelayStarting(int seconds);
+	void verticalStreamStopping();
+
 	/* -------------------------------------
 	 * MARK: - OBSBasic_ReplayBuffer
 	 * -------------------------------------
@@ -1438,6 +1443,9 @@ private:
 	volatile bool previewProgramMode = false;
 
 	obs_hotkey_pair_id togglePreviewProgramHotkeys = 0;
+
+	OBSSource current_transition;
+	OBSSource override_transition;
 
 	int programX = 0, programY = 0;
 	int programCX = 0, programCY = 0;

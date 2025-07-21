@@ -237,8 +237,8 @@ void OBSBasic::RefreshSceneListDisplay()
 	struct obs_frontend_source_list scenes_sources;
 	obs_frontend_get_scenes(&scenes_sources);
 
-	for (size_t i = 0; i < scenes_sources.num; ++i) {
-		obs_source_t *scene_source = scenes_sources.sources[i];
+	for (size_t i = 0; i < scenes_sources.sources.num; ++i) {
+		obs_source_t *scene_source = scenes_sources.sources.array[i];
 		const char *scene_name_char = obs_source_get_name(scene_source);
 		QString scene_name = QString::fromUtf8(scene_name_char);
 		bool add_this_scene = false;
@@ -1108,14 +1108,14 @@ void OBSBasic::SceneNameEdited(QWidget *editor)
 		OBSSourceAutoRelease existingSource = obs_get_source_by_name(finalName.toStdString().c_str());
 		if (existingSource && obs_source_get_uuid(existingSource) != obs_source_get_uuid(source)) {
 			OBSMessageBox::warning(this, QTStr("NameExists.Title"), QTStr("NameExists.Text"));
-			listItem->setText(originalName); // Revert UI
+			ui->scenes->currentItem()->setText(originalName); // Revert UI
 			obs_source_release(existingSource);
 		} else {
 			RenameListItem(this, ui->scenes, source, finalName.toStdString());
 		}
 		if(existingSource) obs_source_release(existingSource);
 	} else { // Name didn't actually change after prefix logic, or wasn't changed by user
-		listItem->setText(originalName); // Ensure UI is correct if only case changed etc.
+		ui->scenes->currentItem()->setText(originalName); // Ensure UI is correct if only case changed etc.
 	}
 
 
