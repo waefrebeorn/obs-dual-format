@@ -1086,23 +1086,25 @@ void OBSApp::SetupOutputs()
 						obs_source_t *vertical_scene_to_stream =
 							App()->GetCurrentVerticalScene();
 						if (vertical_scene_to_stream) {
-							obs_output_set_video_source(
+							video_t *video =
+								obs_source_get_video(
+									vertical_scene_to_stream);
+							obs_output_set_media(
 								vertical_stream_output,
-								vertical_scene_to_stream);
+								video,
+								obs_get_audio());
 							blog(LOG_INFO,
-							     "Vertical stream output video source set to: %s",
+							     "Vertical stream output media set to scene '%s' and main audio.",
 							     obs_source_get_name(
 								     vertical_scene_to_stream));
 						} else {
-							obs_output_set_video_source(
+							obs_output_set_media(
 								vertical_stream_output,
-								nullptr);
+								nullptr,
+								obs_get_audio());
 							blog(LOG_WARNING,
-							     "No current vertical scene set for vertical stream output.");
+							     "No current vertical scene set for vertical stream output. Media set to main audio only.");
 						}
-						obs_output_set_audio_source(
-							vertical_stream_output,
-							obs_get_audio());
 
 						blog(LOG_INFO, "Vertical stream output '%s' created for service '%s'.", v_encoder_id, v_service_type);
 					} else {

@@ -55,14 +55,14 @@ OBSBasicStatusBar::OBSBasicStatusBar(QWidget *parent)
 
 	OBSBasic *main = qobject_cast<OBSBasic *>(parent());
 	if (main) {
-		connect(main, SIGNAL(startVerticalStreaming(obs_output_t *)), this,
-			SLOT(VerticalStreamStarted(obs_output_t *)));
-		connect(main, SIGNAL(stopVerticalStreaming(int, QString)), this,
-			SLOT(VerticalStreamStopped(int, QString)));
-		connect(main, SIGNAL(verticalStreamDelayStarting(int)), this,
-			SLOT(VerticalStreamDelayStarting(int)));
-		connect(main, SIGNAL(verticalStreamStopping()), this,
-			SLOT(VerticalStreamStopping()));
+		connect(main, &OBSBasic::startVerticalStreaming, this,
+			&OBSBasicStatusBar::VerticalStreamStarted);
+		connect(main, &OBSBasic::stopVerticalStreaming, this,
+			&OBSBasicStatusBar::VerticalStreamStopped);
+		connect(main, &OBSBasic::verticalStreamDelayStarting, this,
+			&OBSBasicStatusBar::VerticalStreamDelayStarting);
+		connect(main, &OBSBasic::verticalStreamStopping, this,
+			&OBSBasicStatusBar::VerticalStreamStopping);
 	}
 
 
@@ -889,17 +889,19 @@ void OBSBasicStatusBar::VerticalStreamStopping()
 }
 
 // Callbacks for vertical stream reconnect
-void OBSBasicStatusBar::OBSOutputVerticalReconnect(void *data, calldata_t *params)
+static void OBSOutputVerticalReconnect(void *data, calldata_t *params)
 {
 	OBSBasicStatusBar *statusBar = static_cast<OBSBasicStatusBar *>(data);
 	int seconds = (int)calldata_int(params, "timeout_sec");
-	QMetaObject::invokeMethod(statusBar, "VerticalReconnect", Qt::QueuedConnection, Q_ARG(int, seconds));
+	QMetaObject::invokeMethod(statusBar, "VerticalReconnect",
+				  Qt::QueuedConnection, Q_ARG(int, seconds));
 }
 
-void OBSBasicStatusBar::OBSOutputVerticalReconnectSuccess(void *data, calldata_t *)
+static void OBSOutputVerticalReconnectSuccess(void *data, calldata_t *)
 {
 	OBSBasicStatusBar *statusBar = static_cast<OBSBasicStatusBar *>(data);
-	QMetaObject::invokeMethod(statusBar, "VerticalReconnectSuccess", Qt::QueuedConnection);
+	QMetaObject::invokeMethod(statusBar, "VerticalReconnectSuccess",
+				  Qt::QueuedConnection);
 }
 
 void OBSBasicStatusBar::VerticalReconnect(int seconds)

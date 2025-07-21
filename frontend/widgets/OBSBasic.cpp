@@ -2900,8 +2900,8 @@ void OBSBasic::on_transitionDuration_valueChanged()
 	if (loading)
 		return;
 
-	obs_source_set_transition_duration(
-		current_transition, ui->transitionDuration->value());
+	obs_transition_set_duration(current_transition,
+				    ui->transitionDuration->value());
 
 	obs_frontend_defer_event(OBS_FRONTEND_EVENT_TRANSITION_DURATION_CHANGED);
 }
