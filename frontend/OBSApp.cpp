@@ -16,6 +16,9 @@
 ******************************************************************************/
 
 #include "OBSApp.hpp"
+#include <obs-source.h>
+#include <obs-frontend-api.h>
+#include <obs-output.h>
 
 #include <components/Multiview.hpp>
 #include <utility/OBSEventFilter.hpp>

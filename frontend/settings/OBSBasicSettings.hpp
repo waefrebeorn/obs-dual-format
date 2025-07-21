@@ -23,6 +23,7 @@
 #include <utility/FFmpegShared.hpp>
 
 #include <QPointer>
+#include <QPlainTextEdit>
 
 #define VOLUME_METER_DECAY_FAST 23.53
 #define VOLUME_METER_DECAY_MEDIUM 11.76
