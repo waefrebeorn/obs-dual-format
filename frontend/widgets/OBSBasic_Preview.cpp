@@ -871,7 +871,7 @@ void OBSBasic::PreviewScalingModeChanged(int value)
 
 void OBSBasic::PreviewScalingModeChanged_V(int value)
 {
-	if (!ui || !ui->mainPreview_v || main->loading)
+	if (!ui || !ui->mainPreview_v || loading)
 		return;
 
 	QString scaleType;
@@ -894,7 +894,7 @@ void OBSBasic::PreviewScalingModeChanged_V(int value)
 	}
 	config_set_string(App()->GetUserConfig(), "BasicWindow",
 			  "PreviewVScaleType", scaleType.toUtf8().constData());
-	main->SetWidgetChanged(ui->previewScalingMode_v);
+	SetWidgetChanged(ui->previewScalingMode_v);
 	UpdatePreviewControls_V();
 }
 

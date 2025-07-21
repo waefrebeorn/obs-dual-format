@@ -1086,12 +1086,9 @@ void OBSApp::SetupOutputs()
 						obs_source_t *vertical_scene_to_stream =
 							App()->GetCurrentVerticalScene();
 						if (vertical_scene_to_stream) {
-							video_t *video =
-								obs_source_get_video(
-									vertical_scene_to_stream);
 							obs_output_set_media(
 								vertical_stream_output,
-								video,
+								vertical_scene_to_stream,
 								obs_get_audio());
 							blog(LOG_INFO,
 							     "Vertical stream output media set to scene '%s' and main audio.",

@@ -1037,6 +1037,11 @@ signals:
 	void RecordingStopping();
 	void RecordingStopped();
 
+	void startVerticalStreaming(obs_output_t *output);
+	void stopVerticalStreaming(int code, QString last_error);
+	void verticalStreamDelayStarting(int seconds);
+	void verticalStreamStopping();
+
 	/* -------------------------------------
 	 * MARK: - OBSBasic_ReplayBuffer
 	 * -------------------------------------

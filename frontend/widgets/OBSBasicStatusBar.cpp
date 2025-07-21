@@ -926,6 +926,21 @@ void OBSBasicStatusBar::VerticalReconnect(int seconds)
 	}
 }
 
+static void OBSOutputVerticalReconnect(void *data, calldata_t *params)
+{
+	OBSBasicStatusBar *statusBar = static_cast<OBSBasicStatusBar *>(data);
+	int seconds = (int)calldata_int(params, "timeout_sec");
+	QMetaObject::invokeMethod(statusBar, "VerticalReconnect",
+				  Qt::QueuedConnection, Q_ARG(int, seconds));
+}
+
+static void OBSOutputVerticalReconnectSuccess(void *data, calldata_t *)
+{
+	OBSBasicStatusBar *statusBar = static_cast<OBSBasicStatusBar *>(data);
+	QMetaObject::invokeMethod(statusBar, "VerticalReconnectSuccess",
+				  Qt::QueuedConnection);
+}
+
 void OBSBasicStatusBar::VerticalReconnectSuccess()
 {
 	OBSBasic *main = qobject_cast<OBSBasic *>(parent());

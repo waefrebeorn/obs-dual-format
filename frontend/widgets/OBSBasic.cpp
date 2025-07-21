@@ -66,7 +66,7 @@
 
 #include <obs-frontend-api.h>
 #include <obs-module.h>
-#include <obs-transition.h>
+#include <obs.h>
 #include <obs-source.h>
 #include <obs-hotkey.h>
 
@@ -578,6 +578,21 @@ OBSBasic::OBSBasic(QWidget *parent) : OBSMainWindow(parent), undo_s(ui), ui(new 
 		}
 	}
 }
+
+void OBSBasic::startVerticalStreaming(obs_output_t *output)
+{
+	Q_UNUSED(output);
+}
+void OBSBasic::stopVerticalStreaming(int code, QString last_error)
+{
+	Q_UNUSED(code);
+	Q_UNUSED(last_error);
+}
+void OBSBasic::verticalStreamDelayStarting(int seconds)
+{
+	Q_UNUSED(seconds);
+}
+void OBSBasic::verticalStreamStopping() {}
 
 static const double scaled_vals[] = {1.0, 1.25, (1.0 / 0.75), 1.5, (1.0 / 0.6), 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 0.0};
 
@@ -2490,10 +2505,8 @@ void OBSBasic::TransitionToScene(OBSSource scene, bool force, bool quickTransiti
 					return;
 
 				OBSSource trans = GetCurrentTransition();
-				obs_transition_set_duration(trans,
-							    quickDuration);
-				obs_transition_start_with_data(trans,
-							       nullptr);
+				obs_source_set_duration(trans, quickDuration);
+				obs_source_transition_start(trans);
 			}
 			return;
 		}
@@ -2508,11 +2521,10 @@ void OBSBasic::TransitionToScene(OBSSource scene, bool force, bool quickTransiti
 		}
 
 		if (black)
-			obs_transition_set_destination(trans, nullptr,
+			obs_source_set_transition_target(trans, nullptr,
 						       OBS_TRANSITION_MODE_OVERRIDE);
 		else
-			obs_transition_set_dest_source(trans, scene,
-						       OBS_TRANSITION_MODE_AUTO);
+			obs_source_set_transition_target(trans, scene);
 	}
 }
 
@@ -2560,8 +2572,7 @@ void OBSBasic::TransitionClicked()
 		return;
 
 	if (previewProgramMode) {
-		TransitionToScene(GetCurrentSceneSource(), true, false, 0, false,
-				  true);
+		obs_source_transition_start(GetCurrentTransition());
 	}
 }
 
@@ -2835,7 +2846,7 @@ void OBSBasic::TriggerQuickTransition(int id)
 void OBSBasic::TBarChanged(int value)
 {
 	float t = float(value) / float(ui->tBar->maximum());
-	obs_transition_set_time_t(current_transition, t);
+	obs_source_transition_set_time(current_transition, t);
 	tBarActive = true;
 }
 
@@ -3517,9 +3528,10 @@ void OBSBasic::on_transitionDuration_valueChanged()
 	if (loading)
 		return;
 
-	obs_source_set_transition_duration(current_transition, ui->transitionDuration->value());
+	obs_source_set_duration(current_transition,
+				    ui->transitionDuration->value());
 
-	OnEvent(OBS_FRONTEND_EVENT_TRANSITION_DURATION_CHANGED);
+	obs_frontend_defer_event(OBS_FRONTEND_EVENT_TRANSITION_DURATION_CHANGED);
 }
 
 void OBSBasic::ShowTransitionProperties()
@@ -4868,87 +4880,68 @@ QMenu *OBSBasic::CreatePerSceneTransitionMenu()
 
 void OBSBasic::SetCurrentScene(obs_source_t *scene, bool force)
 {
-	OBSSource currentTargetScene = nullptr;
-	bool isVerticalPaneActive = (activePreviewPane == ActivePreview::VERTICAL && App()->IsDualOutputActive());
-
-	if (isVerticalPaneActive) {
-		currentTargetScene = App()->GetCurrentVerticalScene();
-	} else {
-		// If horizontal pane is active, or if dual output is not active,
-		// the target is the main/horizontal scene.
-		// In studio mode, this refers to the preview scene.
-		currentTargetScene = previewProgramMode ? obs_frontend_get_current_preview_scene()
-		                                       : obs_frontend_get_current_scene();
-		// Fallback if App()->GetCurrentHorizontalScene() isn't set yet (e.g. initial load or if it's not tracking libobs preview/program)
-		if (!currentTargetScene) currentTargetScene = App()->GetCurrentHorizontalScene();
-	}
-
-	if (!force && scene == currentTargetScene) {
-		// If the UI (scene list) is trying to select the scene that's already
-		// active for this pane, ensure the UI list selection matches, but don't re-trigger app logic.
-		if (loaded) {
-			QListWidgetItem *item = ui->scenes->FindScene(reinterpret_cast<obs_scene_t *>(scene));
-			if (item && ui->scenes->currentItem() != item) {
-				ui->scenes->blockSignals(true);
-				ui->scenes->setCurrentItem(item);
-				ui->scenes->blockSignals(false);
-			}
-		}
+	if (!force && scene == GetCurrentSceneSource())
 		return;
+
+	/* ------------------------------------------------------ */
+	/* save previous scene                                    */
+
+	OBSScene previousScene = GetCurrentScene();
+	if (previousScene)
+		obs_source_set_monitoring_type(
+			obs_scene_get_source(previousScene),
+			OBS_MONITORING_TYPE_NONE);
+
+	/* ------------------------------------------------------ */
+	/* activate new scene                                     */
+
+	OBSScene nextScene = (OBSScene)scene;
+	if (nextScene) {
+		obs_source_inc_showing(scene);
+		obs_source_set_monitoring_type(
+			scene, GetAudioMonitoringTypeFromSettings());
 	}
 
-	OBSScene previousSceneForMonitoring = nullptr;
+	/* ------------------------------------------------------ */
+	/* do the actual scene switch                             */
 
-	if (isVerticalPaneActive) {
-		previousSceneForMonitoring = App()->GetCurrentVerticalScene();
-		App()->SetCurrentVerticalScene(scene); // This will emit verticalSceneChanged
-		                                     // and handle output source if active.
-		                                     // Does not interact with libobs global current scene/preview.
-		// For vertical pane, audio monitoring is tied to the scene selected for it.
-		if (scene) obs_source_set_monitoring_type(scene, GetAudioMonitoringTypeFromSettings());
+	if (previewProgramMode) {
+		obs_frontend_set_current_preview_scene(scene);
+		programScene = obs_frontend_get_current_preview_scene();
 
-	} else { // Horizontal pane active or dual output off
-		previousSceneForMonitoring = previewProgramMode ? obs_frontend_get_current_preview_scene()
-		                                            : obs_frontend_get_current_scene();
-		if (!previousSceneForMonitoring) previousSceneForMonitoring = App()->GetCurrentHorizontalScene();
+		if (lastProgramScene && lastProgramScene != programScene)
+			obs_source_set_monitoring_type(
+				lastProgramScene, OBS_MONITORING_TYPE_NONE);
 
+		lastProgramScene = programScene;
 
-		App()->SetCurrentHorizontalScene(scene); // Emits horizontalSceneChanged
+		if (programScene)
+			obs_source_set_monitoring_type(
+				programScene,
+				GetAudioMonitoringTypeFromSettings());
 
-		// Update the core libobs current scene (preview or program)
-		if (previewProgramMode) {
-			obs_frontend_set_current_preview_scene(scene);
-			// Program scene is updated by transitions.
-			// Update monitoring for the new preview scene.
-			if (scene) obs_source_set_monitoring_type(scene, GetAudioMonitoringTypeFromSettings());
-			OnEvent(OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED);
-		} else {
-			obs_frontend_set_current_scene(scene);
-			if (scene) obs_source_set_monitoring_type(scene, GetAudioMonitoringTypeFromSettings());
-			OnEvent(OBS_FRONTEND_EVENT_SCENE_CHANGED);
-		}
+	} else {
+		obs_frontend_set_current_scene(scene);
 	}
 
-	// Stop monitoring on the previous scene for the specific pane/context if it's different
-	if (previousSceneForMonitoring && previousSceneForMonitoring != obs_scene_from_source(scene)) {
-		obs_source_set_monitoring_type(obs_scene_get_source(previousSceneForMonitoring), OBS_MONITORING_TYPE_NONE);
-	}
+	/* ------------------------------------------------------ */
 
-	// Common UI updates: Refresh source list for the newly selected scene in the UI.
-	// Update context bar and source toolbar as they might depend on the selected scene.
-	RefreshSources(obs_scene_from_source(scene));
+	RefreshSources(nextScene);
 	UpdateContextBar();
 	UpdateSourceListToolbar();
 
-	// Update the scene list widget selection to reflect the change.
 	if (loaded) {
-		QListWidgetItem *item = ui->scenes->FindScene(reinterpret_cast<obs_scene_t *>(scene));
+		QListWidgetItem *item = ui->scenes->FindScene(nextScene);
 		if (item) {
 			ui->scenes->blockSignals(true);
 			ui->scenes->setCurrentItem(item);
 			ui->scenes->blockSignals(false);
 		}
 	}
+
+	OnEvent(OBS_FRONTEND_EVENT_SCENE_CHANGED);
+	if (previewProgramMode)
+		OnEvent(OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED);
 }
 
 void OBSBasic::SetTransition(OBSSource transition)

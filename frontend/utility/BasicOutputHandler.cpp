@@ -174,7 +174,7 @@ void OBSStartVerticalStreaming(void *data, calldata_t *params)
 	// TODO: Add a global atomic for vertical streaming if needed elsewhere: os_atomic_set_bool(&vertical_streaming_active, true);
 	QMetaObject::invokeMethod(handler->main, "VerticalStreamingStart"); // Assumes a slot in OBSBasic
 	// Emit the specific signal from BasicOutputHandler
-	handler->startVerticalStreaming.Emit(params);
+	handler->startVerticalStreaming(params);
 }
 
 void OBSStopVerticalStreaming(void *data, calldata_t *params)
@@ -188,7 +188,7 @@ void OBSStopVerticalStreaming(void *data, calldata_t *params)
 	handler->verticalDelayActive = false; // Reset delay state too
 	// TODO: os_atomic_set_bool(&vertical_streaming_active, false);
 	QMetaObject::invokeMethod(handler->main, "VerticalStreamingStop", Q_ARG(int, code), Q_ARG(QString, arg_last_error)); // Assumes a slot
-	handler->stopVerticalStreaming.Emit(params);
+	handler->stopVerticalStreaming(params);
 }
 
 void OBSVerticalStreamDelayStarting(void *data, calldata_t *params)
@@ -200,7 +200,7 @@ void OBSVerticalStreamDelayStarting(void *data, calldata_t *params)
 
 	handler->verticalDelayActive = true;
 	// QMetaObject::invokeMethod(handler->main, "VerticalStreamDelayStarting", Q_ARG(int, sec)); // Assumes a slot
-	handler->verticalStreamDelayStarting.Emit(params);
+	handler->verticalStreamDelayStarting(params);
 }
 
 void OBSVerticalStreamStopping(void *data, calldata_t *params)
@@ -210,23 +210,17 @@ void OBSVerticalStreamStopping(void *data, calldata_t *params)
 	int sec = (int)obs_output_get_active_delay(obj);
 
 	// QMetaObject::invokeMethod(handler->main, sec == 0 ? "VerticalStreamStoppingEarly" : "VerticalStreamDelayStopping", Q_ARG(int, sec)); // Assumes slots
-	handler->verticalStreamStopping.Emit(params);
+	handler->verticalStreamStopping(params);
 }
 
 // TODO: Add OBSStartVerticalRecording, OBSStopVerticalRecording, etc. if implementing vertical recording
 
 static bool return_first_id(void *data, const char *id)
 {
-	BasicOutputHandler *output = static_cast<BasicOutputHandler *>(data);
-	output->DestroyVirtualCamView();
-}
-
-bool return_first_id(void *data, const char *id)
-{
 	const char **output = (const char **)data;
 
 	*output = id;
-	return false;
+	return true;
 }
 
 const char *GetStreamOutputType(const obs_service_t *service)
