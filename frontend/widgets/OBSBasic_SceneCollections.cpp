@@ -892,11 +892,11 @@ void OBSBasic::Save(SceneCollection &collection)
 						       transitions, scene, curProgramScene, savedProjectorList,
 						       savedCanvases);
 
-	obs_data_set_bool(saveData, "preview_locked", ui->preview->Locked());
-	obs_data_set_bool(saveData, "scaling_enabled", ui->preview->IsFixedScaling());
-	obs_data_set_int(saveData, "scaling_level", ui->preview->GetScalingLevel());
-	obs_data_set_double(saveData, "scaling_off_x", ui->preview->GetScrollX());
-	obs_data_set_double(saveData, "scaling_off_y", ui->preview->GetScrollY());
+	obs_data_set_bool(saveData, "preview_locked", ui->mainPreview_h->Locked());
+	obs_data_set_bool(saveData, "scaling_enabled", ui->mainPreview_h->IsFixedScaling());
+	obs_data_set_int(saveData, "scaling_level", ui->mainPreview_h->GetScalingLevel());
+	obs_data_set_double(saveData, "scaling_off_x", ui->mainPreview_h->GetScrollX());
+	obs_data_set_double(saveData, "scaling_off_y", ui->mainPreview_h->GetScrollY());
 
 	if (vcamEnabled) {
 		OBSDataAutoRelease obj = obs_data_create();
@@ -1393,7 +1393,7 @@ retryScene:
 	RefreshQuickTransitions();
 
 	bool previewLocked = obs_data_get_bool(data, "preview_locked");
-	ui->preview->SetLocked(previewLocked);
+	ui->mainPreview_h->SetLocked(previewLocked);
 	ui->actionLockPreview->setChecked(previewLocked);
 
 	/* ---------------------- */
@@ -1404,12 +1404,12 @@ retryScene:
 	float scrollOffY = (float)obs_data_get_double(data, "scaling_off_y");
 
 	if (fixedScaling) {
-		ui->preview->SetScalingLevel(scalingLevel);
-		ui->preview->SetScrollingOffset(scrollOffX, scrollOffY);
+		ui->mainPreview_h->SetScalingLevel(scalingLevel);
+		ui->mainPreview_h->SetScrollingOffset(scrollOffX, scrollOffY);
 	}
-	ui->preview->SetFixedScaling(fixedScaling);
+	ui->mainPreview_h->SetFixedScaling(fixedScaling);
 
-	emit ui->preview->DisplayResized();
+	emit ui->mainPreview_h->DisplayResized();
 
 	if (vcamEnabled) {
 		OBSDataAutoRelease obj = obs_data_get_obj(data, "virtual-camera");

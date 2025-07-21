@@ -2224,7 +2224,7 @@ void OBSBasicPreview::resetScalingLevel()
 
 OBSBasicPreview *OBSBasicPreview::Get()
 {
-	return OBSBasic::Get()->ui->preview;
+	return OBSBasic::Get()->ui->mainPreview_h;
 }
 
 static obs_source_t *CreateLabel(float pixelRatio, int i)
@@ -2598,16 +2598,16 @@ void OBSBasicPreview::UpdateXScrollBar(float cx)
 
 	OBSBasic *main = OBSBasic::Get();
 
-	if (!main->ui->previewXScrollBar->isVisible())
+	if (!main->ui->previewXScrollBar_h->isVisible())
 		return;
 
-	main->ui->previewXScrollBar->setRange(int(-cx), int(cx));
+	main->ui->previewXScrollBar_h->setRange(int(-cx), int(cx));
 
 	QSize targetSize = GetPixelSize(this);
-	main->ui->previewXScrollBar->setPageStep(targetSize.width() / std::min(scalingAmount, 1.0f));
+	main->ui->previewXScrollBar_h->setPageStep(targetSize.width() / std::min(scalingAmount, 1.0f));
 
-	QSignalBlocker sig(main->ui->previewXScrollBar);
-	main->ui->previewXScrollBar->setValue(int(-scrollingOffset.x));
+	QSignalBlocker sig(main->ui->previewXScrollBar_h);
+	main->ui->previewXScrollBar_h->setValue(int(-scrollingOffset.x));
 }
 
 void OBSBasicPreview::UpdateYScrollBar(float cy)
@@ -2617,14 +2617,14 @@ void OBSBasicPreview::UpdateYScrollBar(float cy)
 
 	OBSBasic *main = OBSBasic::Get();
 
-	if (!main->ui->previewYScrollBar->isVisible())
+	if (!main->ui->previewYScrollBar_h->isVisible())
 		return;
 
-	main->ui->previewYScrollBar->setRange(int(-cy), int(cy));
+	main->ui->previewYScrollBar_h->setRange(int(-cy), int(cy));
 
 	QSize targetSize = GetPixelSize(this);
-	main->ui->previewYScrollBar->setPageStep(targetSize.height() / std::min(scalingAmount, 1.0f));
+	main->ui->previewYScrollBar_h->setPageStep(targetSize.height() / std::min(scalingAmount, 1.0f));
 
-	QSignalBlocker sig(main->ui->previewYScrollBar);
-	main->ui->previewYScrollBar->setValue(int(-scrollingOffset.y));
+	QSignalBlocker sig(main->ui->previewYScrollBar_h);
+	main->ui->previewYScrollBar_h->setValue(int(-scrollingOffset.y));
 }
