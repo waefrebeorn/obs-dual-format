@@ -879,7 +879,6 @@ void OBSApp::SetCurrentVerticalScene(obs_source_t *scene)
 	if (vertical_stream_output &&
 	    obs_output_active(vertical_stream_output)) {
 		obs_output_set_media(vertical_stream_output,
-
 					    (video_t*)current_vertical_scene, obs_get_audio());
 		blog(LOG_INFO,
 		     "Updated active vertical stream output video source to: %s",
@@ -1088,7 +1087,6 @@ void OBSApp::SetupOutputs()
 							App()->GetCurrentVerticalScene();
 						obs_output_set_media(
 							vertical_stream_output,
-
 							(video_t*)vertical_scene_to_stream,
 							obs_get_audio());
 						if (vertical_scene_to_stream) {
