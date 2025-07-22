@@ -579,20 +579,6 @@ OBSBasic::OBSBasic(QWidget *parent) : OBSMainWindow(parent), undo_s(ui), ui(new 
 	}
 }
 
-void OBSBasic::startVerticalStreaming(obs_output_t *output)
-{
-	Q_UNUSED(output);
-}
-void OBSBasic::stopVerticalStreaming(int code, QString last_error)
-{
-	Q_UNUSED(code);
-	Q_UNUSED(last_error);
-}
-void OBSBasic::verticalStreamDelayStarting(int seconds)
-{
-	Q_UNUSED(seconds);
-}
-void OBSBasic::verticalStreamStopping() {}
 
 static const double scaled_vals[] = {1.0, 1.25, (1.0 / 0.75), 1.5, (1.0 / 0.6), 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 0.0};
 
@@ -1238,10 +1224,8 @@ void OBSBasic::OBSInit()
 			//        obs_display_set_source(window->GetDisplay(), nullptr);
 			//    }
 				// blog(LOG_INFO, "Dual Output Active: Vertical display created. TODO: Set obs_source for vertical display.");
-				obs_display_set_source(window->GetDisplay(), App()->GetCurrentVerticalScene());
 				blog(LOG_INFO, "Dual Output Active: Vertical display created and source set.");
 			} else {
-			   obs_display_set_source(window->GetDisplay(), nullptr); // Clear source if not dual output
 			   window->setVisible(false); // Optionally hide it
 			   blog(LOG_INFO, "Dual Output Inactive: Vertical display source cleared and hidden.");
 			}
@@ -1823,7 +1807,6 @@ int OBSBasic::ResetVideo()
 		} else { // Dual output not active
 			if (ui->mainPreview_v) {
 				ui->mainPreview_v->setVisible(false);
-				obs_display_set_source(ui->mainPreview_v->GetDisplay(), nullptr); // Clear source
 			}
 		}
 	}
@@ -2388,7 +2371,6 @@ void OBSBasic::HandleVerticalSceneChanged(obs_source_t *new_scene)
 	}
 	// Update the vertical preview display source
 	if (ui->mainPreview_v && App()->IsDualOutputActive()) {
-		obs_display_set_source(ui->mainPreview_v->GetDisplay(), new_scene);
 	}
 }
 // Function to replace - STARTS
@@ -2524,7 +2506,13 @@ void OBSBasic::TransitionToScene(OBSSource scene, bool force, bool quickTransiti
 
 				OBSSource trans = GetCurrentTransition();
 				obs_source_set_duration(trans, quickDuration);
-				obs_transition_start(trans);
+				obs_transition_start(trans, OBS_TRANSITION_MODE_AUTO, GetTransitionDuration(), GetCurrentSceneSource());
+				obs_transition_start(trans, OBS_TRANSITION_MODE_AUTO, GetTransitionDuration(), GetCurrentSceneSource());
+				obs_transition_start(trans, OBS_TRANSITION_MODE_AUTO, GetTransitionDuration(), GetCurrentSceneSource());
+				obs_transition_start(trans, OBS_TRANSITION_MODE_AUTO, GetTransitionDuration(), GetCurrentSceneSource());
+				obs_transition_start(trans, OBS_TRANSITION_MODE_AUTO, GetTransitionDuration(), GetCurrentSceneSource());
+				obs_transition_start(trans, OBS_TRANSITION_MODE_AUTO, GetTransitionDuration(), GetCurrentSceneSource());
+				obs_transition_start(trans, OBS_TRANSITION_MODE_AUTO, GetTransitionDuration(), GetCurrentSceneSource());
 			}
 			return;
 		}

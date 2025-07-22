@@ -24,7 +24,7 @@
 #include <QWindow>
 
 #include "qt-wrappers.hpp"
-#include "obs-app.hpp"
+#include "OBSApp.hpp"
 #include "obs-frontend-api.h"
 #include "window-basic-main.hpp"
 #include "window-basic-settings.hpp"

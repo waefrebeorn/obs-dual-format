@@ -152,10 +152,139 @@
         <!-- ... existing generalPage content ... -->
        </widget>
        <widget class="QWidget" name="appearancePage">
-        <!-- ... existing appearancePage content ... -->
+        <layout class="QVBoxLayout" name="verticalLayout_35">
+         <item>
+          <widget class="QScrollArea" name="scrollArea_8">
+           <property name="frameShape">
+            <enum>QFrame::NoFrame</enum>
+           </property>
+           <property name="widgetResizable">
+            <bool>true</bool>
+           </property>
+           <widget class="QWidget" name="scrollAreaWidgetContents_2">
+            <property name="geometry">
+             <rect>
+              <x>0</x>
+              <y>0</y>
+              <width>100</width>
+              <height>30</height>
+             </rect>
+            </property>
+            <layout class="QFormLayout" name="formLayout_29">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_58">
+               <property name="text">
+                <string>Basic.Settings.Appearance.Theme</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="theme"/>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="themeVariant"/>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_59">
+               <property name="text">
+                <string>Basic.Settings.Appearance.FontScale</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <layout class="QHBoxLayout" name="horizontalLayout_29">
+               <item>
+                <widget class="QSlider" name="appearanceFontScale">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="appearanceFontScaleText">
+                 <property name="text">
+                  <string>TextLabel</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </widget>
+         </item>
+        </layout>
        </widget>
        <widget class="QWidget" name="streamPage">
-        <!-- ... existing streamPage content ... -->
+        <layout class="QVBoxLayout" name="verticalLayout_36">
+         <item>
+          <widget class="QScrollArea" name="scrollArea_9">
+           <property name="frameShape">
+            <enum>QFrame::NoFrame</enum>
+           </property>
+           <property name="widgetResizable">
+            <bool>true</bool>
+           </property>
+           <widget class="QWidget" name="scrollAreaWidgetContents_9">
+            <property name="geometry">
+             <rect>
+              <x>0</x>
+              <y>0</y>
+              <width>100</width>
+              <height>30</height>
+             </rect>
+            </property>
+            <layout class="QFormLayout" name="formLayout_30">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_60">
+               <property name="text">
+                <string>Basic.Settings.Stream.Service</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="service"/>
+             </item>
+             <item row="1" column="1">
+              <widget class="QPushButton" name="connectAccount2">
+               <property name="text">
+                <string>Basic.Settings.Stream.ConnectAccount</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_61">
+               <property name="text">
+                <string>Basic.Settings.Stream.Server</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QComboBox" name="server">
+               <property name="editable">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="label_62">
+               <property name="text">
+                <string>Basic.Settings.Stream.StreamKey</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QLineEdit" name="key">
+               <property name="echoMode">
+                <enum>QLineEdit::Password</enum>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </widget>
+         </item>
+        </layout>
        </widget>
        <widget class="QWidget" name="outputPage">
         <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -5876,7 +6005,149 @@
         <!-- ... existing hotkeyPage content ... -->
        </widget>
        <widget class="QWidget" name="accessPage">
-        <!-- ... existing accessPage content ... -->
+        <layout class="QVBoxLayout" name="verticalLayout_33">
+         <property name="leftMargin">
+          <number>9</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QScrollArea" name="scrollArea_7">
+           <property name="frameShape">
+            <enum>QFrame::NoFrame</enum>
+           </property>
+           <property name="widgetResizable">
+            <bool>true</bool>
+           </property>
+           <widget class="QWidget" name="scrollAreaWidgetContents">
+            <property name="geometry">
+             <rect>
+              <x>0</x>
+              <y>0</y>
+              <width>100</width>
+              <height>30</height>
+             </rect>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_34">
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QGroupBox" name="colorsGroupBox">
+               <property name="title">
+                <string>Basic.Settings.Accessibility.ColorOverrides</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
+               <layout class="QFormLayout" name="formLayout_28">
+                <item row="0" column="0">
+                 <widget class="QLabel" name="label_56">
+                  <property name="text">
+                   <string>Basic.Settings.Accessibility.ColorOverrides.Preset</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QComboBox" name="colorPreset">
+                  <item>
+                   <property name="text">
+                    <string>Basic.Settings.Accessibility.ColorOverrides.Preset.Default</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Basic.Settings.Accessibility.ColorOverrides.Preset.ColorBlind1</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Custom</string>
+                   </property>
+                  </item>
+                 </widget>
+                </item>
+                <item row="1" column="0">
+                 <widget class="QLabel" name="label_57">
+                  <property name="text">
+                   <string>Basic.Settings.Accessibility.ColorOverrides.SelectRed</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <layout class="QHBoxLayout" name="horizontalLayout_28">
+                  <item>
+                   <widget class="QLabel" name="color1">
+                    <property name="minimumSize">
+                     <size>
+                      <width>150</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>TextLabel</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="choose1">
+                    <property name="text">
+                     <string>Basic.Settings.Accessibility.ColorOverrides.ChooseColor</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="horizontalSpacer_26">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <spacer name="verticalSpacer_7">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+          </widget>
+         </item>
+        </layout>
        </widget>
        <widget class="QWidget" name="advancedPage">
         <!-- ... existing advancedPage content ... -->

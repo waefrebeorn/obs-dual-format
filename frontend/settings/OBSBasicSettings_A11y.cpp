@@ -44,13 +44,13 @@ void OBSBasicSettings::LoadA11ySettings(bool presetChange)
 
 	loading = true;
 	if (!presetChange) {
-		preset = config_get_int(config, "Accessibility", "ColorPreset");
+		preset = config_get_int(config, "ColorPreset");
 
 		bool block = ui->colorPreset->blockSignals(true);
 		ui->colorPreset->setCurrentIndex(std::min(preset, (uint32_t)ui->colorPreset->count() - 1));
 		ui->colorPreset->blockSignals(block);
 
-		bool checked = config_get_bool(config, "Accessibility", "OverrideColors");
+		bool checked = config_get_bool(config, "OverrideColors");
 
 		ui->colorsGroupBox->setChecked(checked);
 	}
@@ -76,17 +76,17 @@ void OBSBasicSettings::LoadA11ySettings(bool presetChange)
 	} else if (preset == COLOR_PRESET_CUSTOM) {
 		SetDefaultColors();
 
-		selectRed = config_get_int(config, "Accessibility", "SelectRed");
-		selectGreen = config_get_int(config, "Accessibility", "SelectGreen");
-		selectBlue = config_get_int(config, "Accessibility", "SelectBlue");
+		selectRed = config_get_int(config, "SelectRed");
+		selectGreen = config_get_int(config, "SelectGreen");
+		selectBlue = config_get_int(config, "SelectBlue");
 
-		mixerGreen = config_get_int(config, "Accessibility", "MixerGreen");
-		mixerYellow = config_get_int(config, "Accessibility", "MixerYellow");
-		mixerRed = config_get_int(config, "Accessibility", "MixerRed");
+		mixerGreen = config_get_int(config, "MixerGreen");
+		mixerYellow = config_get_int(config, "MixerYellow");
+		mixerRed = config_get_int(config, "MixerRed");
 
-		mixerGreenActive = config_get_int(config, "Accessibility", "MixerGreenActive");
-		mixerYellowActive = config_get_int(config, "Accessibility", "MixerYellowActive");
-		mixerRedActive = config_get_int(config, "Accessibility", "MixerRedActive");
+		mixerGreenActive = config_get_int(config, "MixerGreenActive");
+		mixerYellowActive = config_get_int(config, "MixerYellowActive");
+		mixerRedActive = config_get_int(config, "MixerRedActive");
 	}
 
 	UpdateA11yColors();
@@ -98,18 +98,18 @@ void OBSBasicSettings::SaveA11ySettings()
 {
 	config_t *config = App()->GetUserConfig();
 
-	config_set_bool(config, "Accessibility", "OverrideColors", ui->colorsGroupBox->isChecked());
-	config_set_int(config, "Accessibility", "ColorPreset", preset);
+	config_set_bool(config, "OverrideColors", ui->colorsGroupBox->isChecked());
+	config_set_int(config, "ColorPreset", preset);
 
-	config_set_int(config, "Accessibility", "SelectRed", selectRed);
-	config_set_int(config, "Accessibility", "SelectGreen", selectGreen);
-	config_set_int(config, "Accessibility", "SelectBlue", selectBlue);
-	config_set_int(config, "Accessibility", "MixerGreen", mixerGreen);
-	config_set_int(config, "Accessibility", "MixerYellow", mixerYellow);
-	config_set_int(config, "Accessibility", "MixerRed", mixerRed);
-	config_set_int(config, "Accessibility", "MixerGreenActive", mixerGreenActive);
-	config_set_int(config, "Accessibility", "MixerYellowActive", mixerYellowActive);
-	config_set_int(config, "Accessibility", "MixerRedActive", mixerRedActive);
+	config_set_int(config, "SelectRed", selectRed);
+	config_set_int(config, "SelectGreen", selectGreen);
+	config_set_int(config, "SelectBlue", selectBlue);
+	config_set_int(config, "MixerGreen", mixerGreen);
+	config_set_int(config, "MixerYellow", mixerYellow);
+	config_set_int(config, "MixerRed", mixerRed);
+	config_set_int(config, "MixerGreenActive", mixerGreenActive);
+	config_set_int(config, "MixerYellowActive", mixerYellowActive);
+	config_set_int(config, "MixerRedActive", mixerRedActive);
 
 	main->RefreshVolumeColors();
 }
@@ -145,17 +145,17 @@ void OBSBasicSettings::UpdateA11yColors()
 void OBSBasicSettings::SetDefaultColors()
 {
 	config_t *config = App()->GetUserConfig();
-	config_set_default_int(config, "Accessibility", "SelectRed", selectRed);
-	config_set_default_int(config, "Accessibility", "SelectGreen", selectGreen);
-	config_set_default_int(config, "Accessibility", "SelectBlue", selectBlue);
+	config_set_default_int(config, "SelectRed", selectRed);
+	config_set_default_int(config, "SelectGreen", selectGreen);
+	config_set_default_int(config, "SelectBlue", selectBlue);
 
-	config_set_default_int(config, "Accessibility", "MixerGreen", mixerGreen);
-	config_set_default_int(config, "Accessibility", "MixerYellow", mixerYellow);
-	config_set_default_int(config, "Accessibility", "MixerRed", mixerRed);
+	config_set_default_int(config, "MixerGreen", mixerGreen);
+	config_set_default_int(config, "MixerYellow", mixerYellow);
+	config_set_default_int(config, "MixerRed", mixerRed);
 
-	config_set_default_int(config, "Accessibility", "MixerGreenActive", mixerGreenActive);
-	config_set_default_int(config, "Accessibility", "MixerYellowActive", mixerYellowActive);
-	config_set_default_int(config, "Accessibility", "MixerRedActive", mixerRedActive);
+	config_set_default_int(config, "MixerGreenActive", mixerGreenActive);
+	config_set_default_int(config, "MixerYellowActive", mixerYellowActive);
+	config_set_default_int(config, "MixerRedActive", mixerRedActive);
 }
 
 void OBSBasicSettings::ResetDefaultColors()

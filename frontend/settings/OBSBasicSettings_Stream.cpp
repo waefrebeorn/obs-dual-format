@@ -94,7 +94,7 @@ void OBSBasicSettings::InitStreamPage()
 
 void OBSBasicSettings::LoadStream1Settings()
 {
-	bool ignoreRecommended = config_get_bool(main->Config(), "Stream1", "IgnoreRecommended");
+	bool ignoreRecommended = config_get_bool(main->Config(), "IgnoreRecommended");
 
 	obs_service_t *service_obj = main->GetService();
 	const char *type = obs_service_get_type(service_obj);
@@ -140,34 +140,34 @@ void OBSBasicSettings::LoadStream1Settings()
 		bool bw_test = obs_data_get_bool(settings, "bwtest");
 		ui->bandwidthTestEnable->setChecked(bw_test);
 
-		idx = config_get_int(main->Config(), "Twitch", "AddonChoice");
+		idx = config_get_int(main->Config(), "AddonChoice");
 		ui->twitchAddonDropdown->setCurrentIndex(idx);
 	}
 
-	ui->enableMultitrackVideo->setChecked(config_get_bool(main->Config(), "Stream1", "EnableMultitrackVideo"));
+	ui->enableMultitrackVideo->setChecked(config_get_bool(main->Config(), "EnableMultitrackVideo"));
 
 	ui->multitrackVideoMaximumAggregateBitrateAuto->setChecked(
-		config_get_bool(main->Config(), "Stream1", "MultitrackVideoMaximumAggregateBitrateAuto"));
-	if (config_has_user_value(main->Config(), "Stream1", "MultitrackVideoMaximumAggregateBitrate")) {
+		config_get_bool(main->Config(), "MultitrackVideoMaximumAggregateBitrateAuto"));
+	if (config_has_user_value(main->Config(), "MultitrackVideoMaximumAggregateBitrate")) {
 		ui->multitrackVideoMaximumAggregateBitrate->setValue(
-			config_get_int(main->Config(), "Stream1", "MultitrackVideoMaximumAggregateBitrate"));
+			config_get_int(main->Config(), "MultitrackVideoMaximumAggregateBitrate"));
 	}
 
 	ui->multitrackVideoMaximumVideoTracksAuto->setChecked(
-		config_get_bool(main->Config(), "Stream1", "MultitrackVideoMaximumVideoTracksAuto"));
-	if (config_has_user_value(main->Config(), "Stream1", "MultitrackVideoMaximumVideoTracks"))
+		config_get_bool(main->Config(), "MultitrackVideoMaximumVideoTracksAuto"));
+	if (config_has_user_value(main->Config(), "MultitrackVideoMaximumVideoTracks"))
 		ui->multitrackVideoMaximumVideoTracks->setValue(
-			config_get_int(main->Config(), "Stream1", "MultitrackVideoMaximumVideoTracks"));
+			config_get_int(main->Config(), "MultitrackVideoMaximumVideoTracks"));
 
 	ui->multitrackVideoStreamDumpEnable->setChecked(
-		config_get_bool(main->Config(), "Stream1", "MultitrackVideoStreamDumpEnabled"));
+		config_get_bool(main->Config(), "MultitrackVideoStreamDumpEnabled"));
 
 	ui->multitrackVideoConfigOverrideEnable->setChecked(
-		config_get_bool(main->Config(), "Stream1", "MultitrackVideoConfigOverrideEnabled"));
-	if (config_has_user_value(main->Config(), "Stream1", "MultitrackVideoConfigOverride"))
+		config_get_bool(main->Config(), "MultitrackVideoConfigOverrideEnabled"));
+	if (config_has_user_value(main->Config(), "MultitrackVideoConfigOverride"))
 		ui->multitrackVideoConfigOverride->setPlainText(
 			DeserializeConfigText(
-				config_get_string(main->Config(), "Stream1", "MultitrackVideoConfigOverride"))
+				config_get_string(main->Config(), "MultitrackVideoConfigOverride"))
 				.c_str());
 
 	ui->multitrackVideoAdditionalCanvas->clear();
@@ -179,9 +179,9 @@ void OBSBasicSettings::LoadStream1Settings()
 		ui->multitrackVideoAdditionalCanvas->addItem(obs_canvas_get_name(canvas), obs_canvas_get_uuid(canvas));
 	}
 
-	if (config_has_user_value(main->Config(), "Stream1", "MultitrackExtraCanvas")) {
+	if (config_has_user_value(main->Config(), "MultitrackExtraCanvas")) {
 		/* Currently we only support one canvas, so the value will just be one UUID. */
-		const std::string_view uuid = config_get_string(main->Config(), "Stream1", "MultitrackExtraCanvas");
+		const std::string_view uuid = config_get_string(main->Config(), "MultitrackExtraCanvas");
 		if (!uuid.empty()) {
 			int idx = ui->multitrackVideoAdditionalCanvas->findData(uuid.data());
 			ui->multitrackVideoAdditionalCanvas->setCurrentIndex(idx);
@@ -327,7 +327,7 @@ void OBSBasicSettings::SaveStream1Settings()
 
 	SaveCheckBox(ui->ignoreRecommended, "Stream1", "IgnoreRecommended");
 
-	auto oldMultitrackVideoSetting = config_get_bool(main->Config(), "Stream1", "EnableMultitrackVideo");
+	auto oldMultitrackVideoSetting = config_get_bool(main->Config(), "EnableMultitrackVideo");
 
 	if (!IsCustomService()) {
 		OBSDataAutoRelease settings = obs_data_create();
@@ -537,7 +537,7 @@ static void reset_service_ui_fields(Ui::OBSBasicSettings *ui, std::string &servi
 #ifdef YOUTUBE_ENABLED
 static void get_yt_ch_title(Ui::OBSBasicSettings *ui)
 {
-	const char *name = config_get_string(OBSBasic::Get()->Config(), "YouTube", "ChannelName");
+	const char *name = config_get_string(OBSBasic::Get()->Config(), "ChannelName");
 	if (name) {
 		ui->connectedAccountText->setText(name);
 	} else {
@@ -937,7 +937,7 @@ void OBSBasicSettings::on_server_currentIndexChanged(int /*index*/)
 
 void OBSBasicSettings::UpdateVodTrackSetting()
 {
-	bool enableForCustomServer = config_get_bool(App()->GetUserConfig(), "General", "EnableCustomServerVodTrack");
+	bool enableForCustomServer = config_get_bool(App()->GetUserConfig(), "EnableCustomServerVodTrack");
 	bool enableVodTrack = ui->service->currentText() == "Twitch";
 	bool wasEnabled = !!vodTrackCheckbox;
 
@@ -958,7 +958,7 @@ void OBSBasicSettings::UpdateVodTrackSetting()
 	/* simple output mode vod track widgets   */
 
 	bool simpleAdv = ui->simpleOutAdvanced->isChecked();
-	bool vodTrackEnabled = config_get_bool(main->Config(), "SimpleOutput", "VodTrackEnabled");
+	bool vodTrackEnabled = config_get_bool(main->Config(), "VodTrackEnabled");
 
 	simpleVodTrack = new QCheckBox(this);
 	simpleVodTrack->setText(QTStr("Basic.Settings.Output.Simple.TwitchVodTrack"));
@@ -997,13 +997,13 @@ void OBSBasicSettings::UpdateVodTrackSetting()
 
 	ui->advOutTopLayout->insertRow(2, vodTrackCheckbox, vodTrackContainer);
 
-	vodTrackEnabled = config_get_bool(main->Config(), "AdvOut", "VodTrackEnabled");
+	vodTrackEnabled = config_get_bool(main->Config(), "VodTrackEnabled");
 	vodTrackCheckbox->setChecked(vodTrackEnabled);
 	vodTrackContainer->setEnabled(vodTrackEnabled);
 
 	connect(vodTrackCheckbox, &QCheckBox::clicked, vodTrackContainer, &QWidget::setEnabled);
 
-	int trackIndex = config_get_int(main->Config(), "AdvOut", "VodTrackIndex");
+	int trackIndex = config_get_int(main->Config(), "VodTrackIndex");
 	for (int i = 0; i < MAX_AUDIO_MIXES; i++) {
 		vodTrack[i]->setChecked((i + 1) == trackIndex);
 	}

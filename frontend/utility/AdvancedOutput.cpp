@@ -58,19 +58,19 @@ static void translate_macvth264_encoder(const char *&encoder)
 
 AdvancedOutput::AdvancedOutput(OBSBasic *main_) : BasicOutputHandler(main_)
 {
-	const char *recType = config_get_string(main->Config(), "AdvOut", "RecType");
-	const char *streamEncoder = config_get_string(main->Config(), "AdvOut", "Encoder");
-	const char *streamAudioEncoder = config_get_string(main->Config(), "AdvOut", "AudioEncoder");
-	const char *recordEncoder = config_get_string(main->Config(), "AdvOut", "RecEncoder");
-	const char *recAudioEncoder = config_get_string(main->Config(), "AdvOut", "RecAudioEncoder");
-	const char *recFormat = config_get_string(main->Config(), "AdvOut", "RecFormat2");
+	const char *recType = config_get_string(main->Config(), "RecType");
+	const char *streamEncoder = config_get_string(main->Config(), "Encoder");
+	const char *streamAudioEncoder = config_get_string(main->Config(), "AudioEncoder");
+	const char *recordEncoder = config_get_string(main->Config(), "RecEncoder");
+	const char *recAudioEncoder = config_get_string(main->Config(), "RecAudioEncoder");
+	const char *recFormat = config_get_string(main->Config(), "RecFormat2");
 #ifdef __APPLE__
 	translate_macvth264_encoder(streamEncoder);
 	translate_macvth264_encoder(recordEncoder);
 #endif
 
 	ffmpegOutput = astrcmpi(recType, "FFmpeg") == 0;
-	ffmpegRecording = ffmpegOutput && config_get_bool(main->Config(), "AdvOut", "FFOutputToFile");
+	ffmpegRecording = ffmpegOutput && config_get_bool(main->Config(), "FFOutputToFile");
 	useStreamEncoder = astrcmpi(recordEncoder, "none") == 0;
 	useStreamAudioEncoder = astrcmpi(recAudioEncoder, "none") == 0;
 
@@ -83,10 +83,10 @@ AdvancedOutput::AdvancedOutput(OBSBasic *main_) : BasicOutputHandler(main_)
 			throw "Failed to create recording FFmpeg output "
 			      "(advanced output)";
 	} else {
-		bool useReplayBuffer = config_get_bool(main->Config(), "AdvOut", "RecRB");
+		bool useReplayBuffer = config_get_bool(main->Config(), "RecRB");
 		if (useReplayBuffer) {
 			OBSDataAutoRelease hotkey;
-			const char *str = config_get_string(main->Config(), "Hotkeys", "ReplayBuffer");
+			const char *str = config_get_string(main->Config(), "ReplayBuffer");
 			if (str)
 				hotkey = obs_data_create_from_json(str);
 			else
@@ -162,7 +162,7 @@ AdvancedOutput::AdvancedOutput(OBSBasic *main_) : BasicOutputHandler(main_)
 	}
 
 	std::string id;
-	int streamTrackIndex = config_get_int(main->Config(), "AdvOut", "TrackIndex") - 1;
+	int streamTrackIndex = config_get_int(main->Config(), "TrackIndex") - 1;
 	streamAudioEnc =
 		obs_audio_encoder_create(streamAudioEncoder, "adv_stream_audio", nullptr, streamTrackIndex, nullptr);
 	if (!streamAudioEnc)
@@ -486,9 +486,9 @@ inline void AdvancedOutput::UpdateAudioSettings()
 	bool applyServiceSettings = config_get_bool(main->Config(), "AdvOut", "ApplyServiceSettings");
 	bool enforceBitrate = !config_get_bool(main->Config(), "Stream1", "IgnoreRecommended");
 	int streamTrackIndex = config_get_int(main->Config(), "AdvOut", "TrackIndex");
-	int vodTrackIndex = config_get_int(main->Config(), "AdvOut", "VodTrackIndex");
-	const char *audioEncoder = config_get_string(main->Config(), "AdvOut", "AudioEncoder");
-	const char *recAudioEncoder = config_get_string(main->Config(), "AdvOut", "RecAudioEncoder");
+	int vodTrackIndex = config_get_int(main->Config(), "VodTrackIndex") - 1;
+	const char *audioEncoder = config_get_string(main->Config(), "AudioEncoder");
+	const char *recAudioEncoder = config_get_string(main->Config(), "RecAudioEncoder");
 
 	bool is_multitrack_output = allowsMultiTrack();
 
@@ -498,7 +498,7 @@ inline void AdvancedOutput::UpdateAudioSettings()
 		string cfg_name = "Track";
 		cfg_name += to_string((int)i + 1);
 		cfg_name += "Name";
-		const char *name = config_get_string(main->Config(), "AdvOut", cfg_name.c_str());
+		const char *name = config_get_string(main->Config(), cfg_name.c_str());
 
 		string def_name = "Track";
 		def_name += to_string((int)i + 1);
@@ -561,16 +561,16 @@ int AdvancedOutput::GetAudioBitrate(size_t i, const char *id) const
 	static const char *names[] = {
 		"Track1Bitrate", "Track2Bitrate", "Track3Bitrate", "Track4Bitrate", "Track5Bitrate", "Track6Bitrate",
 	};
-	int bitrate = (int)config_get_uint(main->Config(), "AdvOut", names[i]);
+	int bitrate = (int)config_get_uint(main->Config(), names[i]);
 	return FindClosestAvailableAudioBitrate(id, bitrate);
 }
 
 inline std::optional<size_t> AdvancedOutput::VodTrackMixerIdx(obs_service_t *service)
 {
-	int streamTrackIndex = config_get_int(main->Config(), "AdvOut", "TrackIndex");
-	bool vodTrackEnabled = config_get_bool(main->Config(), "AdvOut", "VodTrackEnabled");
-	int vodTrackIndex = config_get_int(main->Config(), "AdvOut", "VodTrackIndex");
-	bool enableForCustomServer = config_get_bool(App()->GetUserConfig(), "General", "EnableCustomServerVodTrack");
+	int streamTrackIndex = config_get_int(main->Config(), "TrackIndex");
+	bool vodTrackEnabled = config_get_bool(main->Config(), "VodTrackEnabled");
+	int vodTrackIndex = config_get_int(main->Config(), "VodTrackIndex");
+	bool enableForCustomServer = config_get_bool(App()->GetUserConfig(), "EnableCustomServerVodTrack");
 
 	const char *id = obs_service_get_id(service);
 	if (strcmp(id, "rtmp_custom") == 0) {
@@ -687,19 +687,19 @@ bool AdvancedOutput::StartStreaming(obs_service_t *service)
 {
 	obs_output_set_service(streamOutput, service);
 
-	bool reconnect = config_get_bool(main->Config(), "Output", "Reconnect");
-	int retryDelay = config_get_int(main->Config(), "Output", "RetryDelay");
-	int maxRetries = config_get_int(main->Config(), "Output", "MaxRetries");
-	bool useDelay = config_get_bool(main->Config(), "Output", "DelayEnable");
-	int delaySec = config_get_int(main->Config(), "Output", "DelaySec");
-	bool preserveDelay = config_get_bool(main->Config(), "Output", "DelayPreserve");
-	const char *bindIP = config_get_string(main->Config(), "Output", "BindIP");
-	const char *ipFamily = config_get_string(main->Config(), "Output", "IPFamily");
+	bool reconnect = config_get_bool(main->Config(), "Reconnect");
+	int retryDelay = config_get_int(main->Config(), "RetryDelay");
+	int maxRetries = config_get_int(main->Config(), "MaxRetries");
+	bool useDelay = config_get_bool(main->Config(), "DelayEnable");
+	int delaySec = config_get_int(main->Config(), "DelaySec");
+	bool preserveDelay = config_get_bool(main->Config(), "DelayPreserve");
+	const char *bindIP = config_get_string(main->Config(), "BindIP");
+	const char *ipFamily = config_get_string(main->Config(), "IPFamily");
 #ifdef _WIN32
-	bool enableNewSocketLoop = config_get_bool(main->Config(), "Output", "NewSocketLoopEnable");
-	bool enableLowLatencyMode = config_get_bool(main->Config(), "Output", "LowLatencyEnable");
+	bool enableNewSocketLoop = config_get_bool(main->Config(), "NewSocketLoopEnable");
+	bool enableLowLatencyMode = config_get_bool(main->Config(), "LowLatencyEnable");
 #endif
-	bool enableDynBitrate = config_get_bool(main->Config(), "Output", "DynamicBitrate");
+	bool enableDynBitrate = config_get_bool(main->Config(), "DynamicBitrate");
 
 	if (multitrackVideo && multitrackVideoActive &&
 	    !multitrackVideo->HandleIncompatibleSettings(main, main->Config(), service, enableDynBitrate)) {
@@ -737,29 +737,24 @@ bool AdvancedOutput::StartStreaming(obs_service_t *service)
 	if (is_rtmp) {
 		SetupVodTrack(service);
 	}
-	if (obs_output_start(streamOutput)) {
+	bool horizontalStarted = obs_output_start(streamOutput);
+	if (horizontalStarted) {
 		if (multitrackVideo && multitrackVideoActive)
 			multitrackVideo->StartedStreaming();
-		return true;
-	}
+	} else {
+		if (multitrackVideo && multitrackVideoActive)
+			multitrackVideoActive = false;
 
-	if (multitrackVideo && multitrackVideoActive)
-		multitrackVideoActive = false;
+		const char *error = obs_output_get_last_error(streamOutput);
+		bool hasLastError = error && *error;
+		if (hasLastError)
+			lastError = error;
+		else
+			lastError = string();
 
-	const char *error = obs_output_get_last_error(streamOutput);
-	bool hasLastError = error && *error;
-	if (hasLastError)
-		lastError = error;
-	else
-		lastError = string();
-
-	const char *type = obs_output_get_id(streamOutput);
-	blog(LOG_WARNING, "Stream output type '%s' failed to start!%s%s", type, hasLastError ? "  Last Error: " : "",
-	     hasLastError ? error : "");
-	// Even if horizontal fails, try to start vertical if in dual mode
-	// The function will return true if at least one stream starts.
-	// Fall through if horizontal failed but dual output is active.
-	// horizontalStarted is false here.
+		const char *type = obs_output_get_id(streamOutput);
+		blog(LOG_WARNING, "Stream output type '%s' failed to start!%s%s", type, hasLastError ? "  Last Error: " : "",
+		     hasLastError ? error : "");
 	}
 
 
@@ -857,13 +852,13 @@ bool AdvancedOutput::StartRecording()
 		SetupOutputs();
 
 	if (!ffmpegOutput || ffmpegRecording) {
-		path = config_get_string(main->Config(), "AdvOut", ffmpegRecording ? "FFFilePath" : "RecFilePath");
-		recFormat = config_get_string(main->Config(), "AdvOut", ffmpegRecording ? "FFExtension" : "RecFormat2");
-		filenameFormat = config_get_string(main->Config(), "Output", "FilenameFormatting");
-		overwriteIfExists = config_get_bool(main->Config(), "Output", "OverwriteIfExists");
-		noSpace = config_get_bool(main->Config(), "AdvOut",
+	const char *path = config_get_string(main->Config(), ffmpegRecording ? "FFFilePath" : "RecFilePath");
+	const char *recFormat = config_get_string(main->Config(), ffmpegRecording ? "FFExtension" : "RecFormat2");
+	const char *filenameFormat = config_get_string(main->Config(), "FilenameFormatting");
+	bool overwriteIfExists = config_get_bool(main->Config(), "OverwriteIfExists");
+	bool noSpace = config_get_bool(main->Config(),
 					  ffmpegRecording ? "FFFileNameWithoutSpace" : "RecFileNameWithoutSpace");
-		splitFile = config_get_bool(main->Config(), "AdvOut", "RecSplitFile");
+	bool splitFile = config_get_bool(main->Config(), "RecSplitFile");
 
 		string strPath = GetRecordingFilename(path, recFormat, noSpace, overwriteIfExists, filenameFormat,
 						      ffmpegRecording);
@@ -872,12 +867,12 @@ bool AdvancedOutput::StartRecording()
 		obs_data_set_string(settings, ffmpegRecording ? "url" : "path", strPath.c_str());
 
 		if (splitFile) {
-			splitFileType = config_get_string(main->Config(), "AdvOut", "RecSplitFileType");
+			splitFileType = config_get_string(main->Config(), "RecSplitFileType");
 			splitFileTime = (astrcmpi(splitFileType, "Time") == 0)
-						? config_get_int(main->Config(), "AdvOut", "RecSplitFileTime")
+						? config_get_int(main->Config(), "RecSplitFileTime")
 						: 0;
 			splitFileSize = (astrcmpi(splitFileType, "Size") == 0)
-						? config_get_int(main->Config(), "AdvOut", "RecSplitFileSize")
+						? config_get_int(main->Config(), "RecSplitFileSize")
 						: 0;
 			string ext = GetFormatExt(recFormat);
 			obs_data_set_string(settings, "directory", path);
@@ -932,16 +927,16 @@ bool AdvancedOutput::StartReplayBuffer()
 		SetupOutputs();
 
 	if (!ffmpegOutput || ffmpegRecording) {
-		path = config_get_string(main->Config(), "AdvOut", ffmpegRecording ? "FFFilePath" : "RecFilePath");
-		recFormat = config_get_string(main->Config(), "AdvOut", ffmpegRecording ? "FFExtension" : "RecFormat2");
-		filenameFormat = config_get_string(main->Config(), "Output", "FilenameFormatting");
-		overwriteIfExists = config_get_bool(main->Config(), "Output", "OverwriteIfExists");
-		noSpace = config_get_bool(main->Config(), "AdvOut",
+	const char *path = config_get_string(main->Config(), ffmpegRecording ? "FFFilePath" : "RecFilePath");
+	const char *recFormat = config_get_string(main->Config(), ffmpegRecording ? "FFExtension" : "RecFormat2");
+	const char *filenameFormat = config_get_string(main->Config(), "FilenameFormatting");
+	bool overwriteIfExists = config_get_bool(main->Config(), "OverwriteIfExists");
+	bool noSpace = config_get_bool(main->Config(),
 					  ffmpegRecording ? "FFFileNameWithoutSpace" : "RecFileNameWithoutSpace");
-		rbPrefix = config_get_string(main->Config(), "SimpleOutput", "RecRBPrefix");
-		rbSuffix = config_get_string(main->Config(), "SimpleOutput", "RecRBSuffix");
-		rbTime = config_get_int(main->Config(), "AdvOut", "RecRBTime");
-		rbSize = config_get_int(main->Config(), "AdvOut", "RecRBSize");
+	const char *rbPrefix = config_get_string(main->Config(), "RecRBPrefix");
+	const char *rbSuffix = config_get_string(main->Config(), "RecRBSuffix");
+	int rbTime = config_get_int(main->Config(), "RecRBTime");
+	int rbSize = config_get_int(main->Config(), "RecRBSize");
 
 		string f = GetFormatString(filenameFormat, rbPrefix, rbSuffix);
 		string ext = GetFormatExt(recFormat);
