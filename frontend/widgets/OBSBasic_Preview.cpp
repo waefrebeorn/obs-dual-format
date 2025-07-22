@@ -144,7 +144,7 @@ void OBSBasic::RenderHorizontalMain(void *data, uint32_t, uint32_t)
 		blog(LOG_WARNING, "RenderHorizontalMain: Using fallback OVI.");
 	}
 
-	// Assuming previewScale, previewX, previewY are for horizontal preview (ui->preview which is preview)
+	// Assuming previewScale, previewX, previewY are for horizontal preview (ui->mainPreview_h which is mainPreview_h)
 	window->previewCX = int(window->previewScale * float(ovi.base_width));
 	window->previewCY = int(window->previewScale * float(ovi.base_height));
 
