@@ -610,7 +610,7 @@ static QPixmap GetPixmap(const QString &filename)
 	return QIcon(path + filename).pixmap(QSize(16, 16));
 }
 
-void OBSBasicStatusBar::UpdateIcons()
+void OBSBasicStatusBar::UpdateIcons(bool)
 {
 	disconnectedPixmap = GetPixmap("network-disconnected.svg");
 	inactivePixmap = GetPixmap("network-inactive.svg");
@@ -634,6 +634,17 @@ void OBSBasicStatusBar::UpdateIcons()
 
 	if (!recording)
 		statusWidget->ui->recordIcon->setPixmap(recordingInactivePixmap);
+
+	// Also update vertical stream icons if they are separate
+	if (verticalStreamOutput_) {
+		if (!verticalStreamingActive_) {
+			statusWidget->ui->vStreamIcon->setPixmap(streamingInactivePixmap);
+			statusWidget->ui->vStatusIcon->setPixmap(inactivePixmap);
+		} else {
+			if (verticalStreamDisconnected_)
+				statusWidget->ui->vStatusIcon->setPixmap(disconnectedPixmap);
+		}
+	}
 }
 
 void OBSBasicStatusBar::showMessage(const QString &message, int timeout)
@@ -889,20 +900,6 @@ void OBSBasicStatusBar::VerticalStreamStopping()
 }
 
 // Callbacks for vertical stream reconnect
-static void OBSOutputVerticalReconnect(void *data, calldata_t *params)
-{
-	OBSBasicStatusBar *statusBar = static_cast<OBSBasicStatusBar *>(data);
-	int seconds = (int)calldata_int(params, "timeout_sec");
-	QMetaObject::invokeMethod(statusBar, "VerticalReconnect",
-				  Qt::QueuedConnection, Q_ARG(int, seconds));
-}
-
-static void OBSOutputVerticalReconnectSuccess(void *data, calldata_t *)
-{
-	OBSBasicStatusBar *statusBar = static_cast<OBSBasicStatusBar *>(data);
-	QMetaObject::invokeMethod(statusBar, "VerticalReconnectSuccess",
-				  Qt::QueuedConnection);
-}
 
 void OBSBasicStatusBar::VerticalReconnect(int seconds)
 {

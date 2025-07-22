@@ -144,7 +144,7 @@ void OBSBasic::RenderHorizontalMain(void *data, uint32_t, uint32_t)
 		blog(LOG_WARNING, "RenderHorizontalMain: Using fallback OVI.");
 	}
 
-	// Assuming previewScale, previewX, previewY are for horizontal preview (ui->preview which is mainPreview_h)
+	// Assuming previewScale, previewX, previewY are for horizontal preview (ui->mainPreview_h which is mainPreview_h)
 	window->previewCX = int(window->previewScale * float(ovi.base_width));
 	window->previewCY = int(window->previewScale * float(ovi.base_height));
 
@@ -326,28 +326,28 @@ void OBSBasic::ResizePreview(uint32_t cx, uint32_t cy)
 	obs_video_info ovi;
 
 	/* resize preview panel to fix to the top section of the window */
-	targetSize = GetPixelSize(ui->mainPreview_h);
+	targetSize = GetPixelSize(ui->preview);
 
-	isFixedScaling = ui->mainPreview_h->IsFixedScaling();
+	isFixedScaling = ui->preview->IsFixedScaling();
 	obs_get_video_info(&ovi);
 
 	if (isFixedScaling) {
-		previewScale = ui->mainPreview_h->GetScalingAmount();
+		previewScale = ui->preview->GetScalingAmount();
 
-		ui->mainPreview_h->ClampScrollingOffsets();
+		ui->preview->ClampScrollingOffsets();
 
 		GetCenterPosFromFixedScale(int(cx), int(cy), targetSize.width() - PREVIEW_EDGE_SIZE * 2,
 					   targetSize.height() - PREVIEW_EDGE_SIZE * 2, previewX, previewY,
 					   previewScale);
-		previewX += ui->mainPreview_h->GetScrollX();
-		previewY += ui->mainPreview_h->GetScrollY();
+		previewX += ui->preview->GetScrollX();
+		previewY += ui->preview->GetScrollY();
 
 	} else {
 		GetScaleAndCenterPos(int(cx), int(cy), targetSize.width() - PREVIEW_EDGE_SIZE * 2,
 				     targetSize.height() - PREVIEW_EDGE_SIZE * 2, previewX, previewY, previewScale);
 	}
 
-	ui->mainPreview_h->SetScalingAmount(previewScale);
+	ui->preview->SetScalingAmount(previewScale);
 
 	previewX += float(PREVIEW_EDGE_SIZE);
 	previewY += float(PREVIEW_EDGE_SIZE);
@@ -500,7 +500,7 @@ static bool nudge_callback(obs_scene_t *, obs_sceneitem_t *item, void *param)
 
 void OBSBasic::Nudge(int dist, MoveDir dir)
 {
-	if (ui->mainPreview_h->Locked())
+	if (ui->preview->Locked())
 		return;
 
 	struct vec2 offset;
