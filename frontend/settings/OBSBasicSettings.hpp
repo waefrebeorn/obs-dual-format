@@ -19,6 +19,7 @@
 #pragma once
 
 #include "ui_OBSBasicSettings.h"
+#include "dual-output/DualOutputConst.h"
 
 #include <utility/FFmpegShared.hpp>
 
@@ -266,8 +267,9 @@ private:
 	/* video */
 	void LoadRendererList();
 	void ResetDownscales(uint32_t cx, uint32_t cy, bool ignoreAllSignals = false);
-	void LoadDownscaleFilters();
+	void LoadDownscaleFilters(bool bHorizontal = true);
 	void LoadResolutionLists();
+	void LoadVerticalResolutionLists();
 	void LoadFPSData();
 
 	/* a11y */
@@ -291,6 +293,7 @@ private:
 	void SaveOutputSettings();
 	void SaveAudioSettings();
 	void SaveVideoSettings();
+	void SaveVerticalVideoSettings();
 	void SaveHotkeySettings();
 	void SaveA11ySettings();
 	void SaveAppearanceSettings();
@@ -445,6 +448,9 @@ private slots:
 
 	void SimpleStreamAudioEncoderChanged();
 	void AdvAudioEncodersChanged();
+
+	void showNormalSetting();
+	void showDualoutputSetting();
 
 protected:
 	virtual void closeEvent(QCloseEvent *event) override;

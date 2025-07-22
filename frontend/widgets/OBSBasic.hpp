@@ -196,6 +196,8 @@ static inline void ClearProcessPriority()
 	} while (false)
 #endif
 
+class DualOutputTitle;
+
 class OBSBasic : public OBSMainWindow {
 	Q_OBJECT
 	Q_PROPERTY(QIcon imageIcon READ GetImageIcon WRITE SetImageIcon DESIGNABLE true)
@@ -221,6 +223,7 @@ class OBSBasic : public OBSMainWindow {
 	friend class OBSBasicStatusBar;
 	friend class OBSBasicSourceSelect;
 	friend class OBSBasicSettings;
+	friend class DualOutputTitle;
 	friend class Auth;
 	friend class AutoConfig;
 	friend class AutoConfigStreamPage;
@@ -274,6 +277,8 @@ private:
 
 	std::unique_ptr<Ui::OBSBasic> ui;
 
+	QPointer<DualOutputTitle> dualOutputTitle;
+
 	void OnEvent(enum obs_frontend_event event);
 
 	bool InitBasicConfigDefaults();
@@ -298,6 +303,14 @@ private:
 	void LoadProject();
 
 public slots:
+	void onDualOutputClicked();
+	bool checkStudioMode();
+	bool setDualOutputEnabled(bool bEnabled, bool bShowSetting);
+	void showDualOutputTitle(bool bVisible);
+	void showVerticalDisplay(bool bVisible);
+	void showHorizontalDisplay(bool bVisible);
+	void changeOutputCount(int);
+
 	void UpdatePatronJson(const QString &text, const QString &error);
 	void UpdateEditMenu();
 
@@ -654,7 +667,7 @@ public:
 	 * -------------------------------------
 	 */
 private:
-	std::unique_ptr<BasicOutputHandler> outputHandler;
+	std::unique_ptr<DualOutputHandler> outputHandler;
 	std::optional<std::pair<uint32_t, uint32_t>> lastOutputResolution;
 
 	int disableOutputsRef = 0;
@@ -853,6 +866,8 @@ public:
 	QColor GetSelectionColor() const;
 
 signals:
+	void sigOpenDualOutput(bool bOpen);
+	void sigOutputActiveChanged(bool);
 	void CanvasResized(uint32_t width, uint32_t height);
 	void OutputResized(uint32_t width, uint32_t height);
 
