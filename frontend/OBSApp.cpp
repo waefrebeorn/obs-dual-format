@@ -878,8 +878,8 @@ void OBSApp::SetCurrentVerticalScene(obs_source_t *scene)
 	// If vertical stream output is active, update its video source
 	if (vertical_stream_output &&
 	    obs_output_active(vertical_stream_output)) {
-		obs_output_set_video_source(vertical_stream_output,
-					    current_vertical_scene);
+		obs_output_set_media(vertical_stream_output,
+					    current_vertical_scene, obs_get_audio());
 		blog(LOG_INFO,
 		     "Updated active vertical stream output video source to: %s",
 		     current_vertical_scene
@@ -1085,20 +1085,16 @@ void OBSApp::SetupOutputs()
 
 						obs_source_t *vertical_scene_to_stream =
 							App()->GetCurrentVerticalScene();
+						obs_output_set_media(
+							vertical_stream_output,
+							vertical_scene_to_stream,
+							obs_get_audio());
 						if (vertical_scene_to_stream) {
-							obs_output_set_media(
-								vertical_stream_output,
-								vertical_scene_to_stream,
-								obs_get_audio());
 							blog(LOG_INFO,
 							     "Vertical stream output media set to scene '%s' and main audio.",
 							     obs_source_get_name(
 								     vertical_scene_to_stream));
 						} else {
-							obs_output_set_media(
-								vertical_stream_output,
-								nullptr,
-								obs_get_audio());
 							blog(LOG_WARNING,
 							     "No current vertical scene set for vertical stream output. Media set to main audio only.");
 						}
