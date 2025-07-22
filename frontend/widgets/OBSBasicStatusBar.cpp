@@ -610,7 +610,7 @@ static QPixmap GetPixmap(const QString &filename)
 	return QIcon(path + filename).pixmap(QSize(16, 16));
 }
 
-void OBSBasicStatusBar::UpdateIcons()
+void OBSBasicStatusBar::UpdateIcons(bool)
 {
 	disconnectedPixmap = GetPixmap("network-disconnected.svg");
 	inactivePixmap = GetPixmap("network-inactive.svg");
