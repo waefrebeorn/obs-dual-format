@@ -2394,56 +2394,79 @@ void OBSBasic::HandleVerticalSceneChanged(obs_source_t *new_scene)
 // Function to replace - STARTS
 void OBSBasic::SetCurrentScene(obs_source_t *scene, bool force)
 {
-	if (!force && scene == GetCurrentSceneSource())
-		return;
+	OBSSource currentTargetScene = nullptr;
+	bool isVerticalPaneActive = (activePreviewPane == ActivePreview::VERTICAL && App()->IsDualOutputActive());
 
-	/* ------------------------------------------------------ */
-	/* save previous scene                                    */
-
-	OBSScene previousScene = GetCurrentScene();
-	if (previousScene)
-		obs_source_set_monitoring_type(
-			obs_scene_get_source(previousScene),
-			OBS_MONITORING_TYPE_NONE);
-
-	/* ------------------------------------------------------ */
-	/* activate new scene                                     */
-
-	OBSScene nextScene = obs_scene_from_source(scene);
-	if (nextScene) {
-		obs_source_inc_showing(scene);
-		obs_source_set_monitoring_type(
-			scene, GetAudioMonitoringTypeFromSettings());
-	}
-
-	/* ------------------------------------------------------ */
-	/* do the actual scene switch                             */
-
-	if (previewProgramMode) {
-		obs_frontend_set_current_preview_scene(scene);
-		programScene = obs_frontend_get_current_preview_scene();
-
-		if (lastProgramScene && lastProgramScene != programScene)
-			obs_source_set_monitoring_type(
-				lastProgramScene, OBS_MONITORING_TYPE_NONE);
-
-		lastProgramScene = programScene;
-
-		if (programScene)
-			obs_source_set_monitoring_type(
-				programScene,
-				GetAudioMonitoringTypeFromSettings());
-
+	if (isVerticalPaneActive) {
+		currentTargetScene = App()->GetCurrentVerticalScene();
 	} else {
-		obs_frontend_set_current_scene(scene);
+		// If horizontal pane is active, or if dual output is not active,
+		// the target is the main/horizontal scene.
+		// In studio mode, this refers to the preview scene.
+		currentTargetScene = previewProgramMode ? obs_frontend_get_current_preview_scene()
+		                                       : obs_frontend_get_current_scene();
+		// Fallback if App()->GetCurrentHorizontalScene() isn't set yet (e.g. initial load or if it's not tracking libobs preview/program)
+		if (!currentTargetScene) currentTargetScene = App()->GetCurrentHorizontalScene();
 	}
 
-	/* ------------------------------------------------------ */
+	if (!force && scene == currentTargetScene) {
+		// If the UI (scene list) is trying to select the scene that's already
+		// active for this pane, ensure the UI list selection matches, but don't re-trigger app logic.
+		if (loaded) {
+			QListWidgetItem *item = ui->scenes->FindScene(scene);
+			if (item && ui->scenes->currentItem() != item) {
+				ui->scenes->blockSignals(true);
+				ui->scenes->setCurrentItem(item);
+				ui->scenes->blockSignals(false);
+			}
+		}
+		return;
+	}
 
+	OBSScene previousSceneForMonitoring = nullptr;
+
+	if (isVerticalPaneActive) {
+		previousSceneForMonitoring = App()->GetCurrentVerticalScene();
+		App()->SetCurrentVerticalScene(scene); // This will emit verticalSceneChanged
+		                                     // and handle output source if active.
+		                                     // Does not interact with libobs global current scene/preview.
+		// For vertical pane, audio monitoring is tied to the scene selected for it.
+		if (scene) obs_source_set_monitoring_type(scene, GetAudioMonitoringTypeFromSettings());
+
+	} else { // Horizontal pane active or dual output off
+		previousSceneForMonitoring = previewProgramMode ? obs_frontend_get_current_preview_scene()
+		                                            : obs_frontend_get_current_scene();
+		if (!previousSceneForMonitoring) previousSceneForMonitoring = App()->GetCurrentHorizontalScene();
+
+
+		App()->SetCurrentHorizontalScene(scene); // Emits horizontalSceneChanged
+
+		// Update the core libobs current scene (preview or program)
+		if (previewProgramMode) {
+			obs_frontend_set_current_preview_scene(scene);
+			// Program scene is updated by transitions.
+			// Update monitoring for the new preview scene.
+			if (scene) obs_source_set_monitoring_type(scene, GetAudioMonitoringTypeFromSettings());
+			OnEvent(OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED);
+		} else {
+			obs_frontend_set_current_scene(scene);
+			if (scene) obs_source_set_monitoring_type(scene, GetAudioMonitoringTypeFromSettings());
+			OnEvent(OBS_FRONTEND_EVENT_SCENE_CHANGED);
+		}
+	}
+
+	// Stop monitoring on the previous scene for the specific pane/context if it's different
+	if (previousSceneForMonitoring && previousSceneForMonitoring != scene) {
+		obs_source_set_monitoring_type(previousSceneForMonitoring, OBS_MONITORING_TYPE_NONE);
+	}
+
+	// Common UI updates: Refresh source list for the newly selected scene in the UI.
+	// Update context bar and source toolbar as they might depend on the selected scene.
 	RefreshSources(scene);
 	UpdateContextBar();
-	ui->sources->UpdateToolbar();
+	UpdateSourceListToolbar();
 
+	// Update the scene list widget selection to reflect the change.
 	if (loaded) {
 		QListWidgetItem *item = ui->scenes->FindScene(scene);
 		if (item) {
@@ -2452,10 +2475,6 @@ void OBSBasic::SetCurrentScene(obs_source_t *scene, bool force)
 			ui->scenes->blockSignals(false);
 		}
 	}
-
-	obs_frontend_defer_event(OBS_FRONTEND_EVENT_SCENE_CHANGED);
-	if (previewProgramMode)
-		obs_frontend_defer_event(OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED);
 }
 // Function to replace - ENDS
 
@@ -2493,20 +2512,19 @@ void OBSBasic::TransitionToScene(OBSSource scene, bool force, bool quickTransiti
 	if (!scene)
 		return;
 
-	OBSSource curScene = GetCurrentScene();
+	OBSSource curScene = GetCurrentSceneSource();
 	if (scene == curScene && !force)
 		return;
 
 	if (previewProgramMode && !manual) {
 		if (scene == programScene) {
 			if (quickTransition && quickDuration) {
-				if (obs_transition_is_active(
-					    GetCurrentTransition()))
+				if (IsTransitionActive())
 					return;
 
 				OBSSource trans = GetCurrentTransition();
 				obs_source_set_duration(trans, quickDuration);
-				obs_source_transition_start(trans);
+				obs_transition_start(trans);
 			}
 			return;
 		}
@@ -2515,16 +2533,15 @@ void OBSBasic::TransitionToScene(OBSSource scene, bool force, bool quickTransiti
 	} else {
 		OBSSource trans = GetCurrentTransition();
 		if (quickTransition && quickDuration) {
-			if (obs_transition_is_active(GetCurrentTransition()))
+			if (IsTransitionActive())
 				return;
-			obs_transition_set_duration(trans, quickDuration);
+			obs_source_set_duration(trans, quickDuration);
 		}
 
 		if (black)
-			obs_source_set_transition_target(trans, nullptr,
-						       OBS_TRANSITION_MODE_OVERRIDE);
+			obs_transition_set_destination(trans, nullptr, OBS_TRANSITION_MODE_OVERRIDE);
 		else
-			obs_source_set_transition_target(trans, scene);
+			obs_transition_set(trans, scene);
 	}
 }
 
@@ -2534,7 +2551,7 @@ void OBSBasic::AddTransition(const char *id)
 	if (!transition)
 		return;
 
-	if (!obs_source_is_a_transition(transition)) {
+	if (!obs_source_is_transition(transition)) {
 		OBSErrorBox(this, "Not a transition: %s", id);
 		return;
 	}
@@ -2563,16 +2580,16 @@ void OBSBasic::RenameTransition(OBSSource transition)
 	const char *name = obs_source_get_name(transition);
 	ui->transitions->setItemText(idx, QT_UTF8(name));
 
-	obs_frontend_defer_event(OBS_FRONTEND_EVENT_TRANSITION_RENAMED);
+	OnEvent(OBS_FRONTEND_EVENT_TRANSITION_RENAMED);
 }
 
 void OBSBasic::TransitionClicked()
 {
-	if (obs_transition_is_active(GetCurrentTransition()))
+	if (IsTransitionActive())
 		return;
 
 	if (previewProgramMode) {
-		obs_source_transition_start(GetCurrentTransition());
+		TransitionToScene(GetCurrentSceneSource(), true, false, 0, false, true);
 	}
 }
 
@@ -2582,17 +2599,15 @@ void OBSBasic::TransitionStopped()
 		return;
 
 	if (previewProgramMode) {
-		programScene = obs_frontend_get_program_scene();
+		programScene = obs_frontend_get_current_program_scene();
+		lastProgramScene = programScene;
 		if (programScene)
-			obs_source_set_monitoring_type(
-				programScene,
-				GetAudioMonitoringTypeFromSettings());
+			obs_source_set_monitoring_type(programScene, GetAudioMonitoringTypeFromSettings());
 
-		obs_frontend_defer_event(
-			OBS_FRONTEND_EVENT_PROGRAM_SCENE_CHANGED);
+		OnEvent(OBS_FRONTEND_EVENT_PROGRAM_SCENE_CHANGED);
 	}
 
-	obs_frontend_defer_event(OBS_FRONTEND_EVENT_TRANSITION_STOPPED);
+	OnEvent(OBS_FRONTEND_EVENT_TRANSITION_STOPPED);
 }
 
 void OBSBasic::TransitionFullyStopped()
@@ -2600,7 +2615,7 @@ void OBSBasic::TransitionFullyStopped()
 	if (!loaded)
 		return;
 
-	obs_frontend_defer_event(OBS_FRONTEND_EVENT_TRANSITION_FULLY_STOPPED);
+	OnEvent(OBS_FRONTEND_EVENT_TRANSITION_FULLY_STOPPED);
 }
 
 void OBSBasic::AddQuickTransitionId(int id)
@@ -2613,20 +2628,15 @@ void OBSBasic::AddQuickTransition()
 {
 	QuickTransition qt;
 	qt.id = quickTransitionIdCounter++;
-	qt.name = QTStr("Basic.QuickTransition.DefaultName")
-			.arg(QString::number(qt.id));
 	qt.duration = GetTransitionDuration();
-	qt.hotkeys[0] = obs_hotkey_id_t(OBS_INVALID_HOTKEY_ID);
-	qt.hotkeys[1] = obs_hotkey_id_t(OBS_INVALID_HOTKEY_ID);
-	qt.hotkeys[2] = obs_hotkey_id_t(OBS_INVALID_HOTKEY_ID);
-	qt.hotkeys[3] = obs_hotkey_id_t(OBS_INVALID_HOTKEY_ID);
-	qt.transition = current_transition;
+	qt.hotkey = OBS_INVALID_HOTKEY_ID;
+	qt.source = current_transition;
 
 	quickTransitions.push_back(qt);
 	AddQuickTransitionHotkey(&quickTransitions.back());
 	RefreshQuickTransitions();
 
-	obs_frontend_defer_event(OBS_FRONTEND_EVENT_QUICK_TRANSITION_ADDED);
+	OnEvent(OBS_FRONTEND_EVENT_TRANSITION_LIST_CHANGED);
 }
 
 void OBSBasic::AddQuickTransitionHotkey(QuickTransition *qt)
@@ -2634,29 +2644,15 @@ void OBSBasic::AddQuickTransitionHotkey(QuickTransition *qt)
 	if (!qt)
 		return;
 
-	obs_frontend_source_context context;
+	struct obs_frontend_source_context context;
 	context.id = qt->id;
 	context.type = OBS_FRONTEND_SOURCE_CONTEXT_QUICK_TRANSITION;
 
-	qt->hotkeys[0] = obs_hotkey_register_frontend(
-		"OBSBasic.QuickTransition1",
-		QTStr("Basic.QuickTransition1").arg(qt->name).toUtf8().constData(),
-		context);
+	const char *name = obs_source_get_name(qt->source);
 
-	qt->hotkeys[1] = obs_hotkey_register_frontend(
-		"OBSBasic.QuickTransition2",
-		QTStr("Basic.QuickTransition2").arg(qt->name).toUtf8().constData(),
-		context);
-
-	qt->hotkeys[2] = obs_hotkey_register_frontend(
-		"OBSBasic.QuickTransition3",
-		QTStr("Basic.QuickTransition3").arg(qt->name).toUtf8().constData(),
-		context);
-
-	qt->hotkeys[3] = obs_hotkey_register_frontend(
-		"OBSBasic.QuickTransition4",
-		QTStr("Basic.QuickTransition4").arg(qt->name).toUtf8().constData(),
-		context);
+	qt->hotkey = obs_hotkey_register_frontend_source(
+		"OBSBasic.QuickTransition",
+		QTStr("Basic.QuickTransition").arg(name).toUtf8().constData(), context);
 }
 
 void OBSBasic::RemoveQuickTransitionHotkey(QuickTransition *qt)
@@ -2664,10 +2660,8 @@ void OBSBasic::RemoveQuickTransitionHotkey(QuickTransition *qt)
 	if (!qt)
 		return;
 
-	for (int i = 0; i < 4; i++) {
-		obs_hotkey_unregister_frontend(qt->hotkeys[i]);
-		qt->hotkeys[i] = obs_hotkey_id_t(OBS_INVALID_HOTKEY_ID);
-	}
+	obs_hotkey_unregister(qt->hotkey);
+	qt->hotkey = OBS_INVALID_HOTKEY_ID;
 }
 
 obs_data_array_t *OBSBasic::SaveTransitions()
@@ -2679,22 +2673,21 @@ obs_data_array_t *OBSBasic::SaveTransitions()
 		if (!s)
 			continue;
 
-		OBSDataAutoRelease data = obs_source_save_d(s);
-		obs_data_array_push_back_d(arr, data);
+		OBSDataAutoRelease data = obs_source_save(s);
+		obs_data_array_push_back(arr, data);
 	}
 
 	return arr;
 }
 
-void OBSBasic::LoadTransitions(obs_data_array_t *transitions,
-			       obs_load_source_cb cb, void *private_data)
+void OBSBasic::LoadTransitions(obs_data_array_t *transitions, obs_load_source_cb cb, void *private_data)
 {
 	if (!transitions)
 		return;
 
-	for (size_t i = 0; i < obs_data_array_count_d(transitions); i++) {
-		OBSDataAutoRelease data = obs_data_array_item_d(transitions, i);
-		OBSSource s = obs_load_source_d(data, cb, private_data);
+	for (size_t i = 0; i < obs_data_array_count(transitions); i++) {
+		OBSDataAutoRelease data = obs_data_array_item(transitions, i);
+		OBSSource s = obs_load_source(data, cb, private_data);
 		if (!s)
 			continue;
 
@@ -2704,12 +2697,15 @@ void OBSBasic::LoadTransitions(obs_data_array_t *transitions,
 
 obs_data_array_t *OBSBasic::SaveQuickTransitions()
 {
-	obs_data_array_t *arr = obs_data_array_create_d();
+	obs_data_array_t *arr = obs_data_array_create();
 
 	for (size_t i = 0; i < quickTransitions.size(); i++) {
-		OBSDataAutoRelease data = obs_data_create_d();
-		QuickTransition_Save(&quickTransitions[i], data);
-		obs_data_array_push_back_d(arr, data);
+		OBSDataAutoRelease data = obs_data_create();
+		obs_data_set_string(data, "source", obs_source_get_name(quickTransitions[i].source));
+		obs_data_set_int(data, "duration", quickTransitions[i].duration);
+		obs_data_set_int(data, "id", quickTransitions[i].id);
+		obs_data_set_bool(data, "fade_to_black", quickTransitions[i].fadeToBlack);
+		obs_data_array_push_back(arr, data);
 	}
 
 	return arr;
@@ -2721,13 +2717,17 @@ void OBSBasic::LoadQuickTransitions(obs_data_array_t *arr)
 	if (!arr)
 		return;
 
-	for (size_t i = 0; i < obs_data_array_count_d(arr); i++) {
-		OBSDataAutoRelease data = obs_data_array_item_d(arr, i);
-		QuickTransition qt;
-		QuickTransition_Load(&qt, data);
-		AddQuickTransitionId(qt.id);
-		AddQuickTransitionHotkey(&qt);
-		quickTransitions.push_back(qt);
+	for (size_t i = 0; i < obs_data_array_count(arr); i++) {
+		OBSDataAutoRelease data = obs_data_array_item(arr, i);
+		const char *source_name = obs_data_get_string(data, "source");
+		OBSSource source = FindTransition(source_name);
+		if (!source)
+			continue;
+
+		int duration = (int)obs_data_get_int(data, "duration");
+		int id = (int)obs_data_get_int(data, "id");
+		bool fadeToBlack = obs_data_get_bool(data, "fade_to_black");
+		quickTransitions.emplace_back(source, duration, id, fadeToBlack);
 	}
 
 	RefreshQuickTransitions();
@@ -2755,23 +2755,23 @@ int OBSBasic::GetQuickTransitionIdx(int id)
 
 void OBSBasic::QuickTransitionClicked()
 {
-	QAction *action = qobject_cast<QAction *>(sender());
-	if (!action)
+	QPushButton *button = qobject_cast<QPushButton *>(sender());
+	if (!button)
 		return;
 
-	int id = action->property("id").toInt();
+	int id = button->property("id").toInt();
 	QuickTransition *qt = GetQuickTransition(id);
 	if (!qt)
 		return;
 
-	if (obs_transition_is_active(GetCurrentTransition()))
+	if (IsTransitionActive())
 		return;
 
-	OBSSource scene = GetCurrentScene();
+	OBSSource scene = GetCurrentSceneSource();
 	if (previewProgramMode)
 		scene = programScene;
 
-	TransitionToScene(scene, false, true, qt->duration, false, true);
+	TransitionToScene(scene, false, true, qt->duration, qt->fadeToBlack, true);
 }
 
 void OBSBasic::QuickTransitionChange()
@@ -2790,7 +2790,7 @@ void OBSBasic::QuickTransitionChange()
 	qt->transition = ui->transitions->itemData(transIdx).value<OBSSource>();
 	RefreshQuickTransitions();
 
-	obs_frontend_defer_event(OBS_FRONTEND_EVENT_QUICK_TRANSITION_CHANGED);
+	OnEvent(OBS_FRONTEND_EVENT_QUICK_TRANSITION_CHANGED);
 }
 
 void OBSBasic::QuickTransitionChangeDuration(int value)
@@ -2806,16 +2806,16 @@ void OBSBasic::QuickTransitionChangeDuration(int value)
 
 	qt->duration = value;
 
-	obs_frontend_defer_event(OBS_FRONTEND_EVENT_QUICK_TRANSITION_CHANGED);
+	OnEvent(OBS_FRONTEND_EVENT_TRANSITION_LIST_CHANGED);
 }
 
 void OBSBasic::QuickTransitionRemoveClicked()
 {
-	QAction *action = qobject_cast<QAction *>(sender());
-	if (!action)
+	QPushButton *button = qobject_cast<QPushButton *>(sender());
+	if (!button)
 		return;
 
-	int id = action->property("id").toInt();
+	int id = button->property("id").toInt();
 	int idx = GetQuickTransitionIdx(id);
 	if (idx == -1)
 		return;
@@ -2824,7 +2824,7 @@ void OBSBasic::QuickTransitionRemoveClicked()
 	quickTransitions.erase(quickTransitions.begin() + idx);
 	RefreshQuickTransitions();
 
-	obs_frontend_defer_event(OBS_FRONTEND_EVENT_QUICK_TRANSITION_REMOVED);
+	OnEvent(OBS_FRONTEND_EVENT_TRANSITION_LIST_CHANGED);
 }
 
 void OBSBasic::TriggerQuickTransition(int id)
@@ -2833,20 +2833,20 @@ void OBSBasic::TriggerQuickTransition(int id)
 	if (!qt)
 		return;
 
-	if (obs_transition_is_active(GetCurrentTransition()))
+	if (IsTransitionActive())
 		return;
 
-	OBSSource scene = GetCurrentScene();
+	OBSSource scene = GetCurrentSceneSource();
 	if (previewProgramMode)
 		scene = programScene;
 
-	TransitionToScene(scene, false, true, qt->duration, false, true);
+	TransitionToScene(scene, false, true, qt->duration, qt->fadeToBlack, true);
 }
 
 void OBSBasic::TBarChanged(int value)
 {
 	float t = float(value) / float(ui->tBar->maximum());
-	obs_source_transition_set_time(current_transition, t);
+	obs_transition_set_time(current_transition, t);
 	tBarActive = true;
 }
 
@@ -2867,8 +2867,7 @@ void OBSBasic::on_transitions_currentIndexChanged(int index)
 void OBSBasic::on_transitionAdd_clicked()
 {
 	QMenu menu(this);
-	obs_frontend_populate_transition_types(&menu, this,
-					       SLOT(AddTransition(const char *)));
+	obs_frontend_populate_transition_types(&menu, this, SLOT(AddTransition(const char *)));
 	menu.exec(QCursor::pos());
 }
 
@@ -2889,14 +2888,13 @@ void OBSBasic::on_transitionRemove_clicked()
 
 	for (auto &qt : quickTransitions) {
 		if (qt.transition == s)
-			qt.transition =
-				ui->transitions->itemData(0).value<OBSSource>();
+			qt.transition = ui->transitions->itemData(0).value<OBSSource>();
 	}
 
 	RefreshQuickTransitions();
 	obs_source_remove(s);
 
-	obs_frontend_defer_event(OBS_FRONTEND_EVENT_TRANSITION_LIST_CHANGED);
+	OnEvent(OBS_FRONTEND_EVENT_TRANSITION_LIST_CHANGED);
 }
 
 void OBSBasic::on_transitionProps_clicked()
@@ -2911,10 +2909,9 @@ void OBSBasic::on_transitionDuration_valueChanged()
 	if (loading)
 		return;
 
-	obs_transition_set_duration(current_transition,
-				    ui->transitionDuration->value());
+	obs_source_set_transition_duration(current_transition, ui->transitionDuration->value());
 
-	obs_frontend_defer_event(OBS_FRONTEND_EVENT_TRANSITION_DURATION_CHANGED);
+	OnEvent(OBS_FRONTEND_EVENT_TRANSITION_DURATION_CHANGED);
 }
 
 void OBSBasic::ShowTransitionProperties()
@@ -2937,7 +2934,7 @@ int OBSBasic::GetTbarPosition()
 	return ui->tBar->value();
 }
 
-QMenu *OBSBasic::CreateTransitionMenu(QWidget *parent, QuickTransition *qt)
+QMenu *OBSBasic::CreateTransitionMenu(QWidget *parent, QuickTransition *)
 {
 	QMenu *menu = new QMenu(parent);
 	for (int i = 0; i < ui->transitions->count(); i++) {
@@ -2945,7 +2942,6 @@ QMenu *OBSBasic::CreateTransitionMenu(QWidget *parent, QuickTransition *qt)
 		const char *name = obs_source_get_name(s);
 		QAction *action = menu->addAction(QT_UTF8(name));
 
-		action->setProperty("id", qt->id);
 		action->setProperty("idx", i);
 		connect(action, SIGNAL(triggered()), this, SLOT(QuickTransitionChange()));
 	}
@@ -2969,7 +2965,7 @@ void OBSBasic::RefreshQuickTransitions()
 
 	for (size_t i = 0; i < quickTransitions.size() && i < 4; i++) {
 		QuickTransition *qt = &quickTransitions[i];
-		const char *name = obs_source_get_name(qt->transition);
+		const char *name = obs_source_get_name(qt->source);
 
 		ui->quickTransitions[i]->setText(QT_UTF8(name));
 		ui->quickTransitions[i]->setEnabled(true);
@@ -2992,18 +2988,18 @@ void OBSBasic::ClearQuickTransitions()
 
 OBSSource OBSBasic::GetOverrideTransition(OBSSource source)
 {
-	obs_data_t *data = obs_source_get_settings(source);
-	const char *name = obs_data_get_string_d(data, "transition_override");
+	obs_data_t *data = obs_source_get_private_settings(source);
+	const char *name = obs_data_get_string(data, "transition_override");
 	OBSSource transition = FindTransition(name);
-	obs_data_release_d(data);
+	obs_data_release(data);
 	return transition;
 }
 
 int OBSBasic::GetOverrideTransitionDuration(OBSSource source)
 {
-	obs_data_t *data = obs_source_get_settings(source);
-	int duration = (int)obs_data_get_int_d(data, "transition_duration");
-	obs_data_release_d(data);
+	obs_data_t *data = obs_source_get_private_settings(source);
+	int duration = (int)obs_data_get_int(data, "transition_duration");
+	obs_data_release(data);
 	return duration;
 }
 
