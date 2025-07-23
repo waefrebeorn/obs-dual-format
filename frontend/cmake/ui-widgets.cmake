@@ -64,4 +64,9 @@ target_sources(
     widgets/VolumeAccessibleInterface.hpp
     widgets/VolumeMeter.cpp
     widgets/VolumeMeter.hpp
+    ../dual-output/DualOutputConst.h
+    ../dual-output/DualOutputTitle.cpp
+    ../dual-output/DualOutputTitle.h
+    ../dual-output/DualOutputHandler.cpp
+    ../dual-output/DualOutputHandler.h
 )

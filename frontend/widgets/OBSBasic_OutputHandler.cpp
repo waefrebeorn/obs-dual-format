@@ -33,13 +33,13 @@ void OBSBasic::ResetOutputs()
 	if ((!outputHandler || !outputHandler->Active()) &&
 	    (!setupStreamingGuard.valid() ||
 	     setupStreamingGuard.wait_for(std::chrono::seconds{0}) == std::future_status::ready)) {
-		outputHandler.reset();
-		outputHandler.reset(advOut ? CreateAdvancedOutputHandler(this) : CreateSimpleOutputHandler(this));
+		outputHandler.reset(new DualOutputHandler());
+		outputHandler->reset(advOut, this);
 
-		emit ReplayBufEnabled(outputHandler->replayBuffer);
+		emit ReplayBufEnabled(outputHandler->replayBufferActive());
 
 		if (sysTrayReplayBuffer)
-			sysTrayReplayBuffer->setEnabled(!!outputHandler->replayBuffer);
+			sysTrayReplayBuffer->setEnabled(outputHandler->replayBufferActive());
 
 		UpdateIsRecordingPausable();
 	} else {

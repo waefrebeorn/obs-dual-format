@@ -19,6 +19,8 @@
 #include "OBSBasicSettings.hpp"
 #include "OBSHotkeyLabel.hpp"
 #include "OBSHotkeyWidget.hpp"
+#include "dual-output/DualOutputTitle.h"
+#include "dual-output/DualOutputHandler.hpp"
 
 #include <components/Multiview.hpp>
 #include <components/OBSSourceLabel.hpp>
@@ -553,6 +555,93 @@ OBSBasicSettings::OBSBasicSettings(QWidget *parent)
 	HookWidget(ui->autoRemux,            CHECK_CHANGED,  ADV_CHANGED);
 	HookWidget(ui->dynBitrate,           CHECK_CHANGED,  ADV_CHANGED);
 	/* clang-format on */
+
+	connect(ui->checkBoxDualOutput, &QCheckBox::toggled, this,
+		[this](bool bChecked) {
+			if (!main->setDualOutputEnabled(bChecked, false)) {
+				QSignalBlocker signalBlocker(
+					ui->checkBoxDualOutput);
+
+				ui->checkBoxDualOutput->setChecked(false);
+
+				return;
+			}
+
+			LoadServices(false);
+			on_service_currentIndexChanged(
+				ui->service->currentIndex());
+
+			if (bChecked) {
+				lastServiceIdx = -1;
+				showDualoutputSetting();
+			} else {
+				showNormalSetting();
+			}
+		});
+	if (is_dual_output_on()) {
+		showDualoutputSetting();
+	} else {
+		showNormalSetting();
+	}
+
+	connect(ui->baseResolution_2, &QComboBox::editTextChanged, this,
+		[this](const QString &text) {
+			if (!loading &&
+			    ValidResolutions(this, ui->baseResolution_2,
+					     ui->outputResolution_2)) {
+				QString baseResolution = text;
+				uint32_t cx, cy;
+
+				ConvertResText(QT_TO_UTF8(baseResolution), cx,
+					       cy);
+
+				std::tuple<int, int> aspect =
+					aspect_ratio(cx, cy);
+
+				ui->baseAspect_2->setText(QTStr("AspectRatio")
+							  .arg(QString::number(
+								  std::get<0>(
+									  aspect)),
+							       QString::number(
+								  std::get<1>(
+									  aspect))));
+
+				LoadDownscaleFilters(false);
+			}
+		});
+
+	connect(ui->outputResolution_2, &QComboBox::editTextChanged, this,
+		[this](const QString &text) {
+			if (!loading) {
+				RecalcResPixels(ui->scaledAspect_2,
+						QT_TO_UTF8(text));
+				LoadDownscaleFilters(false);
+			}
+		});
+
+	connect(ui->tabWidgetDualOutputVideo, &QTabWidget::currentChanged, this,
+		[this](int index) {
+			switch (index) {
+			case 0:
+				ui->formLayout_3->addRow(ui->label_11,
+							 ui->downscaleFilter);
+				ui->formLayout_3->addRow(ui->fpsType,
+							 ui->fpsTypes);
+				LoadDownscaleFilters(true);
+				break;
+
+			case 1:
+				ui->formLayout_15->addRow(ui->label_11,
+							  ui->downscaleFilter);
+				ui->formLayout_15->addRow(ui->fpsType,
+							  ui->fpsTypes);
+				LoadDownscaleFilters(false);
+				break;
+
+			default:
+				break;
+			}
+		});
 
 #define ADD_HOTKEY_FOCUS_TYPE(s) ui->hotkeyFocusType->addItem(QTStr("Basic.Settings.Advanced.Hotkeys." s), s)
 
@@ -1603,6 +1692,34 @@ void OBSBasicSettings::LoadResolutionLists()
 		QTStr("AspectRatio").arg(QString::number(std::get<0>(aspect)), QString::number(std::get<1>(aspect))));
 }
 
+void OBSBasicSettings::LoadVerticalResolutionLists()
+{
+	uint32_t cx = config_get_uint(main->Config(), "Video", "BaseCXV");
+	uint32_t cy = config_get_uint(main->Config(), "Video", "BaseCYV");
+	uint32_t out_cx = config_get_uint(main->Config(), "Video", "OutputCXV");
+	uint32_t out_cy = config_get_uint(main->Config(), "Video", "OutputCYV");
+
+	string outputResString = ResString(out_cx, out_cy);
+
+	ui->baseResolution_2->lineEdit()->setText(ResString(cx, cy).c_str());
+
+	RecalcResPixels(ui->scaledAspect_2, outputResString.c_str());
+
+	if (ui->outputResolution_2->isEditable()) {
+		ui->outputResolution_2->lineEdit()->setText(
+			outputResString.c_str());
+	} else {
+		ui->outputResolution_2->setCurrentText(outputResString.c_str());
+	}
+
+	std::tuple<int, int> aspect = aspect_ratio(cx, cy);
+
+	ui->baseAspect_2->setText(
+		QTStr("AspectRatio")
+			.arg(QString::number(std::get<0>(aspect)),
+			     QString::number(std::get<1>(aspect))));
+}
+
 static inline void LoadFPSCommon(OBSBasic *main, Ui::OBSBasicSettings *ui)
 {
 	const char *val = config_get_string(main->Config(), "Video", "FPSCommon");
@@ -1652,8 +1769,9 @@ void OBSBasicSettings::LoadVideoSettings()
 	}
 
 	LoadResolutionLists();
+	LoadVerticalResolutionLists();
 	LoadFPSData();
-	LoadDownscaleFilters();
+	LoadDownscaleFilters(true);
 
 	loading = false;
 }
@@ -3122,6 +3240,27 @@ void OBSBasicSettings::SaveVideoSettings()
 	SaveSpinBox(ui->fpsNumerator, "Video", "FPSNum");
 	SaveSpinBox(ui->fpsDenominator, "Video", "FPSDen");
 	SaveComboData(ui->downscaleFilter, "Video", "ScaleType");
+
+	SaveVerticalVideoSettings();
+}
+
+void OBSBasicSettings::SaveVerticalVideoSettings()
+{
+	QString baseResolution = ui->baseResolution_2->currentText();
+	QString outputResolution = ui->outputResolution_2->currentText();
+	uint32_t cx = 0, cy = 0;
+
+	if (WidgetChanged(ui->baseResolution_2) &&
+	    ConvertResText(QT_TO_UTF8(baseResolution), cx, cy)) {
+		config_set_uint(main->Config(), "Video", "BaseCXV", cx);
+		config_set_uint(main->Config(), "Video", "BaseCYV", cy);
+	}
+
+	if (WidgetChanged(ui->outputResolution_2) &&
+	    ConvertResText(QT_TO_UTF8(outputResolution), cx, cy)) {
+		config_set_uint(main->Config(), "Video", "OutputCXV", cx);
+		config_set_uint(main->Config(), "Video", "OutputCYV", cy);
+	}
 }
 
 void OBSBasicSettings::SaveAdvancedSettings()
@@ -5804,4 +5943,23 @@ void OBSBasicSettings::AdvAudioEncodersChanged()
 	RestrictResetBitrates({ui->advOutTrack1Bitrate, ui->advOutTrack2Bitrate, ui->advOutTrack3Bitrate,
 			       ui->advOutTrack4Bitrate, ui->advOutTrack5Bitrate, ui->advOutTrack6Bitrate},
 			      320);
+}
+
+void OBSBasicSettings::showNormalSetting()
+{
+	if (-1 == ui->formLayout_3->indexOf(ui->label_11)) {
+		ui->formLayout_3->addRow(ui->label_11, ui->downscaleFilter);
+		ui->formLayout_3->addRow(ui->fpsType, ui->fpsTypes);
+		LoadDownscaleFilters(true);
+	}
+
+	ui->horizontalLayoutVideoNormal->addWidget(ui->widget_VideoNormal);
+	ui->stackedWidgetVideoDuaOutput->setCurrentIndex(0);
+}
+
+void OBSBasicSettings::showDualoutputSetting()
+{
+	ui->verticalLayoutVideoHorizontal->addWidget(ui->widget_VideoNormal);
+	ui->tabWidgetDualOutputVideo->setCurrentIndex(0);
+	ui->stackedWidgetVideoDuaOutput->setCurrentIndex(1);
 }

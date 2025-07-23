@@ -20,6 +20,9 @@
 #include "OBSBasic.hpp"
 #include "ui-config.h"
 #include "ColorSelect.hpp"
+#include "dual-output/DualOutputTitle.h"
+#include "dual-output/DualOutputHandler.hpp"
+#include <QAction>
 #include "OBSBasicControls.hpp"
 #include "OBSBasicStats.hpp"
 #include "VolControl.hpp"
@@ -44,6 +47,8 @@
 #include <widgets/OBSProjector.hpp>
 
 #include <OBSStudioAPI.hpp>
+#include "dual-output/DualOutputTitle.h"
+#include "dual-output/DualOutputHandler.hpp"
 #ifdef BROWSER_AVAILABLE
 #include <browser-panel.hpp>
 #endif
@@ -1934,12 +1939,431 @@ OBSBasic *OBSBasic::Get()
 	return reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
 }
 
+void PLSBasic::onDualOutputClicked()
+{
+	setDualOutputEnabled(!is_dual_output_on(), true);
+}
+
+bool PLSBasic::checkStudioMode()
+{
+	if (IsPreviewProgramMode()) {
+		if (PLSAlertView::Button::No ==
+		    PLSAlertView::question(pls_get_toplevel_view(this),
+					   QTStr("DualOutput.Title"),
+					   QTStr("DualOutput.CloseStudioMode"))) {
+			return false;
+		}
+
+		SetPreviewProgramMode(false);
+	}
+
+	return true;
+}
+
+bool PLSBasic::setDualOutputEnabled(bool bEnabled, bool bShowSetting)
+{
+	if (obs_video_active()) {
+		return false;
+	}
+
+	if (is_dual_output_on() == bEnabled) {
+		return true;
+	}
+
+	if (bEnabled && !checkStudioMode()) {
+		return false;
+	}
+
+	set_dual_output_on(bEnabled);
+
+	if (bEnabled) {
+		ResetVerticalVideo();
+
+		if (ui->preview->isHidden()) {
+			ui->preview->show();
+		}
+
+		config_set_bool(Config(), "Stream1", "EnableMultitrackVideo",
+				false);
+	} else {
+		RemoveVerticalVideo();
+
+		if (ui->preview->isHidden()) {
+			ui->preview->show();
+		}
+	}
+	showDualOutputTitle(bEnabled);
+	showVerticalDisplay(bEnabled);
+	ResetOutputs();
+
+	const char *objName =
+		QMetaEnum::fromType<ConfigId>().valueToKey(ConfigId::DualOutputConfig);
+	config_set_bool(App()->GlobalConfig(), objName, "showMode", bEnabled);
+	getMainView()->updateSideBarButtonStyle(ConfigId::DualOutputConfig,
+						bEnabled);
+
+	getMainView()->setStudioModeDimmed(bEnabled);
+
+	sigOpenDualOutput(bEnabled);
+	if (api) {
+		api->on_event(bEnabled
+				      ? pls_frontend_event::
+						PLS_FRONTEND_EVENT_DUAL_OUTPUT_ON
+				      : pls_frontend_event::
+						PLS_FRONTEND_EVENT_DUAL_OUTPUT_OFF);
+	}
+
+	if (bEnabled && bShowSetting) {
+		pls_async_call(this, [this] {
+			showSettingView(QString("Video"), QString());
+		});
+	}
+
+	return true;
+}
+
+void PLSBasic::showDualOutputTitle(bool bVisible)
+{
+	QMargins margins = ui->horizontalLayout_2->contentsMargins();
+	QMargins newMargins = margins;
+
+	if (bVisible) {
+		newMargins.setTop(newMargins.left() - 10);
+	} else {
+		newMargins.setTop(newMargins.left() + 10);
+	}
+
+	if (bVisible) {
+		dualOutputTitle = new DualOutputTitle();
+
+		ui->verticalLayout_3->insertWidget(0, dualOutputTitle, 0,
+						   Qt::AlignTop);
+		dualOutputTitle->setVisible(bVisible);
+	} else {
+		dualOutputTitle->deleteLater();
+	}
+
+	ui->horizontalLayout_2->setContentsMargins(newMargins);
+}
+
+void PLSBasic::showVerticalDisplay(bool bVisible)
+{
+	if (bVisible) {
+		CreateVerticalDisplay();
+
+		ui->perviewLayoutHrz->addWidget(verticalDisplay);
+	}
+	verticalDisplay->setVisible(bVisible);
+	verticalPreviewEnabled = bVisible;
+
+	if (!bVisible) {
+		ui->previewContainer->repaint();
+		pls_async_call(this, [this] { ui->previewContainer->repaint(); });
+	}
+
+	if (dualOutputTitle) {
+		dualOutputTitle->showVerticalDisplay(bVisible);
+	}
+}
+
+void PLSBasic::showHorizontalDisplay(bool bVisible)
+{
+	ui->preview->setVisible(bVisible);
+
+	if (!bVisible) {
+		ui->previewContainer->repaint();
+		pls_async_call(this, [this] { ui->previewContainer->repaint(); });
+	}
+
+	if (dualOutputTitle) {
+		dualOutputTitle->showHorizontalDisplay(bVisible);
+	}
+}
+
 void OBSBasic::UpdatePatronJson(const QString &text, const QString &error)
 {
 	if (!error.isEmpty())
 		return;
 
 	patronJson = QT_TO_UTF8(text);
+}
+
+void OBSBasic::onDualOutputClicked()
+{
+	setDualOutputEnabled(!is_dual_output_on(), true);
+}
+
+bool OBSBasic::checkStudioMode()
+{
+	if (IsPreviewProgramMode()) {
+		if (OBSMessageBox::question(
+			    this, QTStr("DualOutput.Title"),
+			    QTStr("DualOutput.CloseStudioMode")) ==
+		    QMessageBox::No) {
+			return false;
+		}
+
+		SetPreviewProgramMode(false);
+	}
+
+	return true;
+}
+
+bool OBSBasic::setDualOutputEnabled(bool bEnabled, bool bShowSetting)
+{
+	if (obs_video_active()) {
+		return false;
+	}
+
+	if (is_dual_output_on() == bEnabled) {
+		return true;
+	}
+
+	if (bEnabled && !checkStudioMode()) {
+		return false;
+	}
+
+	set_dual_output_on(bEnabled);
+
+	if (bEnabled) {
+		ResetVerticalVideo();
+
+		if (ui->preview->isHidden()) {
+			ui->preview->show();
+		}
+
+		config_set_bool(Config(), "Stream1", "EnableMultitrackVideo",
+				false);
+	} else {
+		RemoveVerticalVideo();
+
+		if (ui->preview->isHidden()) {
+			ui->preview->show();
+		}
+	}
+	showDualOutputTitle(bEnabled);
+	showVerticalDisplay(bEnabled);
+	ResetOutputs();
+
+	const char *objName = "DualOutputConfig";
+	config_set_bool(App()->GlobalConfig(), objName, "showMode", bEnabled);
+	//TODO: get side bar button and update style
+	//getMainView()->updateSideBarButtonStyle(ConfigId::DualOutputConfig,
+	//					bEnabled);
+
+	//getMainView()->setStudioModeDimmed(bEnabled);
+
+	emit sigOpenDualOutput(bEnabled);
+	if (api) {
+		api->on_event(bEnabled
+				      ? (obs_frontend_event)PLS_FRONTEND_EVENT_DUAL_OUTPUT_ON
+				      : (obs_frontend_event)PLS_FRONTEND_EVENT_DUAL_OUTPUT_OFF);
+	}
+
+	if (bEnabled && bShowSetting) {
+		QMetaObject::invokeMethod(this, [this] {
+			showSettingView(QString("Video"), QString());
+		});
+	}
+
+	return true;
+}
+
+void OBSBasic::showDualOutputTitle(bool bVisible)
+{
+	QMargins margins = ui->horizontalLayout_2->contentsMargins();
+	QMargins newMargins = margins;
+
+	if (bVisible) {
+		newMargins.setTop(newMargins.left() - 10);
+	} else {
+		newMargins.setTop(newMargins.left() + 10);
+	}
+
+	if (bVisible) {
+		dualOutputTitle = new DualOutputTitle();
+
+		ui->verticalLayout_3->insertWidget(0, dualOutputTitle, 0,
+						   Qt::AlignTop);
+		dualOutputTitle->setVisible(bVisible);
+	} else {
+		dualOutputTitle->deleteLater();
+	}
+
+	ui->horizontalLayout_2->setContentsMargins(newMargins);
+}
+
+void OBSBasic::showVerticalDisplay(bool bVisible)
+{
+	if (bVisible) {
+		CreateVerticalDisplay();
+
+		ui->perviewLayoutHrz->addWidget(verticalDisplay);
+	}
+	verticalDisplay->setVisible(bVisible);
+	verticalPreviewEnabled = bVisible;
+
+	if (!bVisible) {
+		ui->previewContainer->repaint();
+		QMetaObject::invokeMethod(this, [this] { ui->previewContainer->repaint(); });
+	}
+
+	if (dualOutputTitle) {
+		dualOutputTitle->showVerticalDisplay(bVisible);
+	}
+}
+
+void OBSBasic::showHorizontalDisplay(bool bVisible)
+{
+	ui->preview->setVisible(bVisible);
+
+	if (!bVisible) {
+		ui->previewContainer->repaint();
+		QMetaObject::invokeMethod(this, [this] { ui->previewContainer->repaint(); });
+	}
+
+	if (dualOutputTitle) {
+		dualOutputTitle->showHorizontalDisplay(bVisible);
+	}
+}
+
+void OBSBasic::onDualOutputClicked()
+{
+	setDualOutputEnabled(!is_dual_output_on(), true);
+}
+
+bool OBSBasic::checkStudioMode()
+{
+	if (IsPreviewProgramMode()) {
+		if (OBSMessageBox::question(
+			    this, QTStr("DualOutput.Title"),
+			    QTStr("DualOutput.CloseStudioMode")) ==
+		    QMessageBox::No) {
+			return false;
+		}
+
+		SetPreviewProgramMode(false);
+	}
+
+	return true;
+}
+
+bool OBSBasic::setDualOutputEnabled(bool bEnabled, bool bShowSetting)
+{
+	if (obs_video_active()) {
+		return false;
+	}
+
+	if (is_dual_output_on() == bEnabled) {
+		return true;
+	}
+
+	if (bEnabled && !checkStudioMode()) {
+		return false;
+	}
+
+	set_dual_output_on(bEnabled);
+
+	if (bEnabled) {
+		ResetVerticalVideo();
+
+		if (ui->preview->isHidden()) {
+			ui->preview->show();
+		}
+
+		config_set_bool(Config(), "Stream1", "EnableMultitrackVideo",
+				false);
+	} else {
+		RemoveVerticalVideo();
+
+		if (ui->preview->isHidden()) {
+			ui->preview->show();
+		}
+	}
+	showDualOutputTitle(bEnabled);
+	showVerticalDisplay(bEnabled);
+	ResetOutputs();
+
+	const char *objName = "DualOutputConfig";
+	config_set_bool(App()->GlobalConfig(), objName, "showMode", bEnabled);
+	//TODO: get side bar button and update style
+	//getMainView()->updateSideBarButtonStyle(ConfigId::DualOutputConfig,
+	//					bEnabled);
+
+	//getMainView()->setStudioModeDimmed(bEnabled);
+
+	emit sigOpenDualOutput(bEnabled);
+	if (api) {
+		api->on_event(bEnabled
+				      ? (obs_frontend_event)PLS_FRONTEND_EVENT_DUAL_OUTPUT_ON
+				      : (obs_frontend_event)PLS_FRONTEND_EVENT_DUAL_OUTPUT_OFF);
+	}
+
+	if (bEnabled && bShowSetting) {
+		QMetaObject::invokeMethod(this, [this] {
+			showSettingView(QString("Video"), QString());
+		});
+	}
+
+	return true;
+}
+
+void OBSBasic::showDualOutputTitle(bool bVisible)
+{
+	QMargins margins = ui->horizontalLayout_2->contentsMargins();
+	QMargins newMargins = margins;
+
+	if (bVisible) {
+		newMargins.setTop(newMargins.left() - 10);
+	} else {
+		newMargins.setTop(newMargins.left() + 10);
+	}
+
+	if (bVisible) {
+		dualOutputTitle = new DualOutputTitle();
+
+		ui->verticalLayout_3->insertWidget(0, dualOutputTitle, 0,
+						   Qt::AlignTop);
+		dualOutputTitle->setVisible(bVisible);
+	} else {
+		dualOutputTitle->deleteLater();
+	}
+
+	ui->horizontalLayout_2->setContentsMargins(newMargins);
+}
+
+void OBSBasic::showVerticalDisplay(bool bVisible)
+{
+	if (bVisible) {
+		CreateVerticalDisplay();
+
+		ui->perviewLayoutHrz->addWidget(verticalDisplay);
+	}
+	verticalDisplay->setVisible(bVisible);
+	verticalPreviewEnabled = bVisible;
+
+	if (!bVisible) {
+		ui->previewContainer->repaint();
+		QMetaObject::invokeMethod(this, [this] { ui->previewContainer->repaint(); });
+	}
+
+	if (dualOutputTitle) {
+		dualOutputTitle->showVerticalDisplay(bVisible);
+	}
+}
+
+void OBSBasic::showHorizontalDisplay(bool bVisible)
+{
+	ui->preview->setVisible(bVisible);
+
+	if (!bVisible) {
+		ui->previewContainer->repaint();
+		QMetaObject::invokeMethod(this, [this] { ui->previewContainer->repaint(); });
+	}
+
+	if (dualOutputTitle) {
+		dualOutputTitle->showHorizontalDisplay(bVisible);
+	}
 }
 
 void OBSBasic::SetDisplayAffinity(QWindow *window)
