@@ -19,7 +19,7 @@ endif()
 if(OBS_PARENT_ARCHITECTURE STREQUAL CMAKE_VS_PLATFORM_NAME)
   if(NOT DEFINED OBS_VERSION_OVERRIDE AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
     execute_process(
-      COMMAND git describe --always --tags --dirty=-modified
+      COMMAND git describe --always --tags
       OUTPUT_VARIABLE OBS_VERSION_OVERRIDE
       WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
       RESULT_VARIABLE _obs_version_result
