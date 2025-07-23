@@ -70,7 +70,17 @@ configure_file(cmake/templates/ui-config.h.in ui-config.h)
 
 target_sources(
   obs-studio
-  PRIVATE obs-main.cpp OBSStudioAPI.cpp OBSStudioAPI.hpp OBSApp.cpp OBSApp.hpp OBSApp_Themes.cpp ui-config.h
+  PRIVATE
+    obs-main.cpp
+    OBSStudioAPI.cpp
+    OBSApp.cpp
+    OBSApp_Themes.cpp
+    ui-config.h
+    ../dual-output/DualOutputConst.h
+    ../dual-output/DualOutputHandler.cpp
+    ../dual-output/DualOutputHandler.h
+    ../dual-output/DualOutputTitle.cpp
+    ../dual-output/DualOutputTitle.h
 )
 
 if(OS_WINDOWS)
@@ -110,8 +120,8 @@ list(FILTER target_hpp_sources INCLUDE REGEX ".+\\.(hpp|h)")
 list(SORT target_hpp_sources COMPARE NATURAL CASE SENSITIVE ORDER ASCENDING)
 list(FILTER target_qt_sources INCLUDE REGEX ".+\\.(ui|qrc)")
 list(SORT target_qt_sources COMPARE NATURAL CASE SENSITIVE ORDER ASCENDING)
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "Source Files" FILES ${target_cpp_sources})
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "Header Files" FILES ${target_hpp_sources})
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "Qt Files" FILES ${target_qt_sources})
+source_group(TREE "${CMAKE_SOURCE_DIR}" PREFIX "Source Files" FILES ${target_cpp_sources})
+source_group(TREE "${CMAKE_SOURCE_DIR}" PREFIX "Header Files" FILES ${target_hpp_sources})
+source_group(TREE "${CMAKE_SOURCE_DIR}" PREFIX "Qt Files" FILES ${target_qt_sources})
 
 set_target_properties_obs(obs-studio PROPERTIES FOLDER frontend OUTPUT_NAME "$<IF:$<PLATFORM_ID:Windows>,obs64,obs>")
